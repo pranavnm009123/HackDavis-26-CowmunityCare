@@ -207,7 +207,7 @@ export function buildSystemInstruction(mode, languagePreference = 'auto') {
     ? `The patient is deaf or non-verbal and will communicate using sign language (ASL or another sign system) via camera. Do NOT expect voice input. Speak your questions and responses aloud so staff can hear. Ask one short question, then wait silently while the patient signs. The client automatically sends one cue after a short signing window; interpret the recent camera frames only at that cue, confirm what you understood, and continue with the next new question. Do not repeat the same question unless the signing was unclear.`
     : languagePreference && languagePreference !== 'auto'
       ? `The patient selected this language preference: ${languagePreference}. Respond in that language.`
-      : 'Auto-detect the patient language and respond in that language.';
+      : 'Auto-detect the patient language and respond in that language. If the patient speaks Hindi, Hinglish, or uses Devanagari text, respond in Hindi/Hinglish as appropriate while keeping staff summaries in English.';
   const turnTakingInstruction = isSignLanguage
     ? `Strict ASL turn-taking rule: every assistant turn may ask for exactly one missing field. Never ask two questions in one sentence, never ask "how long and how severe" together, and avoid "and" / "also" follow-up questions. If you need duration and severity, ask duration now, wait for the signed answer, then ask severity in the next turn.
 If the patient answers only part of a previous combined question, accept that answer and ask only the next missing field. Do not repeat fields already answered.`
@@ -248,6 +248,8 @@ Visual input: If the patient holds up a document, insurance card, ID, pill bottl
 Collect the required fields before calling finalize_intake:
 ${template.requiredFields.map((field) => `- ${field}`).join('\n')}
 ${questionFlowGuidance}
+
+If name, email, and phone were provided in the initial session context, treat those as already collected. Include them as full_name, contact_email, and contact_phone in structured_fields unless the patient corrects them.
 
 Urgency rules for this mode:
 ${template.urgencyRules.map((rule) => `- ${rule}`).join('\n')}

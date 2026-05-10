@@ -33,16 +33,6 @@ function renderWithLinks(text) {
   });
 }
 
-function detectLanguageBadge(text) {
-  const normalized = text.toLowerCase();
-  if (/[ऀ-ॿ]/.test(text)) return 'HI';
-  if (/[¿¡ñáéíóú]/.test(normalized) || /\b(hola|gracias|dolor|tiene|puede)\b/.test(normalized)) return 'ES';
-  if (/\b(bonjour|merci|douleur|vous)\b/.test(normalized)) return 'FR';
-  if (/\b(你好|谢谢|疼|痛)\b/.test(normalized)) return 'ZH';
-  return 'AUTO';
-}
-
-
 const CamSvg = () => (
   <svg width="58" height="46" viewBox="0 0 110 86" aria-hidden>
     <path
@@ -92,6 +82,13 @@ export default function PatientView() {
   const [showEnglish, setShowEnglish] = useState(false);
   const [translations, setTranslations] = useState({});
 
+  const [isReturning, setIsReturning] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userError, setUserError] = useState('');
+  const [sessionUser, setSessionUser] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -230,18 +227,58 @@ export default function PatientView() {
   }
 
   async function startSession(langPref = languagePreference) {
+    setUserError('');
+    let user = sessionUser;
+
+    if (!user) {
+      if (isReturning) {
+        if (!userId.trim()) { setUserError('Enter your VoiceBridge ID.'); return; }
+        try {
+          const res = await fetch(`http://${window.location.hostname}:3001/users/${userId.trim().toUpperCase()}`);
+          if (!res.ok) { setUserError('ID not found. Check your ID or register as a new patient.'); return; }
+          const data = await res.json();
+          user = data.user;
+        } catch { setUserError('Could not reach server.'); return; }
+      } else {
+        if (!userName.trim()) { setUserError('Enter your name before starting.'); return; }
+        if (!email.trim()) { setUserError('Enter your email so we can send your summary.'); return; }
+        if (!email.includes('@')) { setUserError('Enter a valid email address.'); return; }
+        if (!phone.trim()) { setUserError('Enter your phone number before starting.'); return; }
+
+        try {
+          const res = await fetch(`http://${window.location.hostname}:3001/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), phone: phone.trim(), name: userName.trim(), language: langPref }),
+          });
+          const data = await res.json();
+          user = data.user || {
+            email: email.trim(),
+            phone: phone.trim(),
+            name: userName.trim(),
+            language: langPref,
+          };
+          if (data.isNew) setSessionStatus(`Welcome! Your VoiceBridge ID is ${user.userId}`);
+        } catch {
+          user = {
+            email: email.trim(),
+            phone: phone.trim(),
+            name: userName.trim(),
+            language: langPref,
+          };
+          setSessionStatus('We saved your contact info for this session.');
+        }
+      }
+    }
+
+    setSessionUser(user);
     setConversation([]);
     setSessionLoading(true);
     setSignedResponsePending(false);
     signedResponseCountRef.current = 0;
     window.clearTimeout(aslAutoTimerRef.current);
-    setLanguageBadge(
-      langPref === 'auto' ? 'AUTO'
-      : langPref === 'sign_language' ? 'ASL'
-      : langPref.slice(0, 2).toUpperCase(),
-    );
-    setSessionStatus('Connecting to VoiceBridge...');
-    send({ type: 'start_session', mode, languagePreference: langPref, user: null });
+    if (!sessionStatus.startsWith('Welcome')) setSessionStatus('Connecting to VoiceBridge...');
+    send({ type: 'start_session', mode, languagePreference: langPref, user });
   }
 
   async function startWithSpeech() {
@@ -432,6 +469,32 @@ export default function PatientView() {
                   <span>{item.description}</span>
                 </button>
               ))}
+            </div>
+
+            <div className="user-id-section">
+              <label className="returning-toggle">
+                <input
+                  type="checkbox"
+                  checked={isReturning}
+                  onChange={(e) => { setIsReturning(e.target.checked); setUserError(''); }}
+                />
+                I have a VoiceBridge ID (returning patient)
+              </label>
+              {isReturning ? (
+                <input
+                  className="user-id-input"
+                  placeholder="VoiceBridge ID — e.g. VB-0001"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                />
+              ) : (
+                <div className="new-user-fields">
+                  <input aria-label="Your name" placeholder="Your name" required value={userName} onChange={(e) => setUserName(e.target.value)} />
+                  <input aria-label="Email address for summary" placeholder="Email address for summary" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <input aria-label="Phone number" placeholder="Phone number" required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
+              )}
+              {userError && <p className="user-error">{userError}</p>}
             </div>
 
             <div className="input-mode-btns">

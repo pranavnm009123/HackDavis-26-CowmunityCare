@@ -399,12 +399,13 @@ export async function createGeminiSession({
     },
   });
 
-  /* Seed as a patient message so the model must respond by asking for the name.
-     Phrasing it as a patient request forces the correct first turn — the model
-     cannot respond to "ask me for my name" with a city question. */
-  session.sendRealtimeInput({
-    text: 'Hi. Please start by asking for my name.',
-  });
+  const contactContext = userContext
+    ? `Start the intake now. Patient contact information was collected before this chat: name=${userContext.name || 'Not provided'}, email=${userContext.email || 'Not provided'}, phone=${userContext.phone || 'Not provided'}. Do not ask for name, email, or phone again unless the patient needs to correct it. When you call finalize_intake, include full_name, contact_email, and contact_phone in structured_fields using this contact information if the patient did not provide different values during the chat.`
+    : 'Hi. Please start by asking for my name.';
+
+  /* Gemini 3.1 Flash Live: incremental user content during the session should use
+     sendRealtimeInput, not sendClientContent (unless seeding history explicitly). */
+  session.sendRealtimeInput({ text: contactContext });
 
   return {
     sendAudio(base64Pcm) {
