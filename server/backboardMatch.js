@@ -47,7 +47,8 @@ Respond with ONLY valid JSON (no markdown code fences, no commentary). Shape:
       "why": "one sentence tied to this intake",
       "nextStep": "what staff should do next",
       "phone": "optional string",
-      "address": "optional string"
+      "address": "optional string",
+      "url": "optional string"
     }
   ]
 }
@@ -71,7 +72,8 @@ Respond with ONLY valid JSON (no markdown code fences, no commentary). Shape:
       "why": "one sentence tied to this intake and why this resource fits",
       "nextStep": "what staff should do next",
       "phone": "optional string",
-      "address": "optional string"
+      "address": "optional string",
+      "url": "optional string"
     }
   ]
 }
@@ -93,6 +95,7 @@ function normalizeParsedResponse(parsed) {
       nextStep: m.nextStep || m.next_step || '',
       phone: m.phone || '',
       address: m.address || '',
+      url: m.url || m.website || '',
       source: 'backboard',
     })),
   };
@@ -289,4 +292,5 @@ export async function enrichIntakeWithBackboard(storedCard, args, broadcast, sto
   if (updated) {
     broadcast({ type: 'INTAKE_UPDATED', card: updated });
   }
+  return updated || { ...storedCard, ...patch };
 }

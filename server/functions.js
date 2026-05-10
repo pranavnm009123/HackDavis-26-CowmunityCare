@@ -4,7 +4,7 @@ import * as defaultStorage from './storage.js';
 import * as appointmentsStorage from './appointments.js';
 import * as doctorStorage from './doctors.js';
 import * as facilityStorage from './facilities.js';
-import { sendAppointmentConfirmation } from './email.js';
+import { sendAppointmentConfirmation, sendIntakeConfirmation, sendResourceEmail } from './email.js';
 import { matchResourcesWithBackboard, enrichIntakeWithBackboard, loadCuratedResourceGuide } from './backboardMatch.js';
 import { getFacilitiesWithScores, matchAccessibility } from './supportServices.js';
 
@@ -20,6 +20,30 @@ function parseJsonish(value, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function withCollectedContact(structuredFields, userContext) {
+  if (!userContext) return structuredFields;
+  return {
+    ...structuredFields,
+    full_name: structuredFields.full_name || userContext.name || 'Not collected',
+    contact_email: structuredFields.contact_email || userContext.email || 'Not collected',
+    contact_phone: structuredFields.contact_phone || userContext.phone || 'Not collected',
+  };
+}
+
+function dedupeResources(resources) {
+  const seen = new Set();
+  const output = [];
+  for (const resource of resources) {
+    const name = typeof resource === 'string' ? resource : resource?.name;
+    if (!name) continue;
+    const key = String(name).toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(resource);
+  }
+  return output;
 }
 
 // Approximate centroids for Yolo County area cities
@@ -119,7 +143,7 @@ export async function tag_urgency(args, broadcast, context = {}) {
 export async function finalize_intake(args, broadcast, storage = defaultStorage, context = {}, userContext = null) {
   const id = crypto.randomUUID();
   const timestamp = new Date().toISOString();
-  const structuredFields = parseJsonish(args.structured_fields, {});
+  const structuredFields = withCollectedContact(parseJsonish(args.structured_fields, {}), userContext);
   const resourceMatches = parseJsonish(args.resource_matches, []);
   const mode = args.mode || context.mode || 'clinic';
   const card = await generateIntakeCard({
@@ -147,15 +171,26 @@ export async function finalize_intake(args, broadcast, storage = defaultStorage,
 
   broadcast({ type: 'NEW_INTAKE', card: storedCard });
 
+  let emailCard = storedCard;
   if (process.env.BACKBOARD_API_KEY) {
-    enrichIntakeWithBackboard(storedCard, args, broadcast, storage).catch((e) =>
-      console.warn('[Backboard] resource enrichment failed:', e.message),
-    );
+    try {
+      emailCard = await enrichIntakeWithBackboard(storedCard, args, broadcast, storage);
+    } catch (e) {
+      console.warn('[Backboard] resource enrichment failed:', e.message);
+    }
   }
 
+  if (!Array.isArray(emailCard?.resource_matches) || emailCard.resource_matches.length === 0) {
+    const category = MODE_DEFAULT_RESOURCE_CATEGORY[mode] || 'clinic';
+    const curated = await getCuratedResources(category);
+    const fallback = curated.length ? curated.slice(0, 5) : FALLBACK_RESOURCES[category] || [];
+    emailCard = { ...emailCard, resource_matches: fallback };
+  }
+
+  let appointment = null;
   if (context.languagePreference === 'sign_language') {
     try {
-      await createFollowUpAppointment({
+      appointment = await createFollowUpAppointment({
         args,
         card,
         storedCard,
@@ -167,6 +202,18 @@ export async function finalize_intake(args, broadcast, storage = defaultStorage,
     } catch (error) {
       console.warn('[Appointments] auto follow-up failed:', error.message);
     }
+  }
+
+  const patientEmail = structuredFields.contact_email || userContext?.email;
+  if (patientEmail && patientEmail !== 'Not collected') {
+    sendIntakeConfirmation({
+      to: patientEmail,
+      name: structuredFields.full_name || card?.patient?.name || userContext?.name || '',
+      card: emailCard || storedCard,
+      mode,
+      structuredFields,
+      appointment,
+    }).catch((e) => console.warn('[Email] Intake confirmation failed:', e.message));
   }
 
   return { success: true, id: storedCard.id };
@@ -204,6 +251,12 @@ const FALLBACK_RESOURCES = {
     { name: 'Yolo County Housing Authority (Section 8)', address: '147 W Main St, Woodland, CA', phone: '(530) 662-5428', hours: 'Mon-Fri 8 AM-5 PM', type: 'housing' },
     { name: 'Legal Services of Northern California — Tenant Rights', address: '515 12th St, Sacramento, CA', phone: '(530) 662-1065', hours: 'Mon-Fri 9 AM-5 PM', type: 'housing' },
   ],
+  grocery_store: [
+    { name: 'Nugget Markets', address: '1414 E Covell Blvd, Davis, CA', phone: '(530) 753-7000', hours: 'Daily 6 AM–11 PM', type: 'grocery_store' },
+    { name: 'Safeway', address: '1431 W Covell Blvd, Davis, CA', phone: '(530) 758-6440', hours: 'Daily 24 hours', type: 'grocery_store' },
+    { name: 'Target', address: '3900 Chiles Rd, Davis, CA', phone: '(530) 756-5900', hours: 'Daily 8 AM–10 PM', type: 'grocery_store' },
+    { name: 'El Super (Woodland)', address: '180 W Main St, Woodland, CA', phone: '(530) 668-1600', hours: 'Daily 7 AM–10 PM', type: 'grocery_store' },
+  ],
   insurance_help: [
     { name: 'Medi-Cal Enrollment (Yolo County HHS)', address: '137 N Cottonwood St, Woodland, CA', phone: '(530) 661-2750', hours: 'Mon-Fri 8 AM-5 PM', type: 'insurance_help' },
     { name: 'Covered California', address: 'Online or in-person at CommuniCare', phone: '1-800-300-1506', hours: 'Mon-Fri 8 AM-6 PM', type: 'insurance_help' },
@@ -213,10 +266,235 @@ const FALLBACK_RESOURCES = {
 
 const CATEGORY_TO_MODE = {
   clinic: 'clinic', shelter: 'shelter', housing: 'shelter', food: 'food_aid', food_aid: 'food_aid',
-  pharmacy: 'clinic', interpreter: 'clinic', emergency_line: 'clinic', insurance_help: 'clinic',
+  grocery_store: 'food_aid', pharmacy: 'clinic', interpreter: 'clinic', emergency_line: 'clinic', insurance_help: 'clinic',
 };
 
+const MODE_DEFAULT_RESOURCE_CATEGORY = {
+  clinic: 'clinic',
+  shelter: 'housing',
+  food_aid: 'food',
+};
+
+const HOUSING_STATIC = [
+  {
+    name: 'UC Davis Off-Campus Housing Portal',
+    type: 'search_portal',
+    url: 'https://housing.ucdavis.edu/off-campus',
+    phone: '(530) 752-2033',
+    description: 'Official UC Davis portal — rentals, sublets, and roommates near campus posted by local landlords. Filter by price, distance, and unit type.',
+    price_range: 'Varies',
+    distance: 'Online portal (all Davis distances)',
+  },
+  {
+    name: 'West Village (UC Davis)',
+    type: 'apartment_complex',
+    url: 'https://westvillage.ucdavis.edu',
+    phone: '(530) 756-7070',
+    description: 'University-managed community on the west edge of campus; studios to 4BR townhomes. Designed for students and UC Davis affiliates.',
+    price_range: '$1,500–$3,200/mo',
+    distance: 'Adjacent to campus (west side)',
+  },
+  {
+    name: 'Russell Park (UC Davis)',
+    type: 'apartment_complex',
+    url: 'https://housing.ucdavis.edu/apartments/russell-park/',
+    phone: '(530) 752-2033',
+    description: 'UC Davis apartment community near campus for students and families; availability runs through the housing application process.',
+    price_range: 'Varies',
+    distance: 'Near central campus',
+  },
+  {
+    name: 'Orchard Park (UC Davis)',
+    type: 'apartment_complex',
+    url: 'https://housing.ucdavis.edu/apartments/orchard-park/',
+    phone: '(530) 752-2033',
+    description: 'UC Davis apartment community for students and student families; useful for graduate/family housing searches.',
+    price_range: 'Varies',
+    distance: 'UC Davis campus',
+  },
+  {
+    name: 'Solano Park (UC Davis)',
+    type: 'apartment_complex',
+    url: 'https://housing.ucdavis.edu/apartments/solano-park/',
+    phone: '(530) 752-2033',
+    description: 'UC Davis apartment community often relevant for student family housing and campus-adjacent options.',
+    price_range: 'Varies',
+    distance: 'UC Davis campus',
+  },
+  {
+    name: 'Craigslist Davis Apartments',
+    type: 'search_portal',
+    url: 'https://sacramento.craigslist.org/search/apa?postal=95616&search_distance=3',
+    description: 'Live daily listings within 3 miles of Davis. Filter by price and bedrooms on the page.',
+    price_range: 'Varies — filter on site',
+    distance: 'Within 3 miles of 95616',
+  },
+  {
+    name: 'Zillow Rentals — Davis, CA',
+    type: 'search_portal',
+    url: 'https://www.zillow.com/davis-ca/rentals/',
+    description: 'Current rental listings in Davis with photos, floor plans, and online applications.',
+    price_range: 'Varies',
+    distance: 'Davis and surrounding area',
+  },
+];
+
+function cleanMarkdownText(value) {
+  return String(value || '')
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
+
+function firstUrl(value) {
+  const text = cleanMarkdownText(value);
+  const url = text.match(/https?:\/\/[^\s)]+|(?:[a-z0-9-]+\.)+(?:edu|org|gov|com|net)(?:\/[^\s)]*)?/i)?.[0] || '';
+  return url.replace(/[.,;:]+$/, '');
+}
+
+function firstPhone(value) {
+  return cleanMarkdownText(value).match(/\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}|(?:911|988)\b/)?.[0] || '';
+}
+
+function categoryMatchesResource(category, resource) {
+  const type = String(resource.type || '').toLowerCase();
+  const haystack = `${resource.name} ${resource.description} ${resource.nextStep}`.toLowerCase();
+  if (category === 'housing') return type.includes('housing') || haystack.includes('housing') || haystack.includes('rental');
+  if (category === 'shelter') return type.includes('shelter') || type.includes('crisis');
+  if (category === 'food') return type.includes('food');
+  if (category === 'grocery_store') return type.includes('grocery');
+  if (category === 'clinic') return type.includes('clinic');
+  if (category === 'pharmacy') return type.includes('pharmacy');
+  if (category === 'interpreter') return type.includes('interpreter') || haystack.includes('language');
+  if (category === 'emergency_line') return type.includes('crisis') || type.includes('emergency') || haystack.includes('911') || haystack.includes('988');
+  if (category === 'insurance_help') return type.includes('insurance') || haystack.includes('medi-cal') || haystack.includes('covered california');
+  return type.includes(category);
+}
+
+function parseGuideTableResources(guideText, category) {
+  const resources = [];
+  for (const line of String(guideText || '').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|') || /^(\|\s*-+)/.test(trimmed)) continue;
+    const cells = trimmed.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length < 3 || /^name$/i.test(cleanMarkdownText(cells[0]))) continue;
+
+    const name = cleanMarkdownText(cells[0]);
+    const type = cleanMarkdownText(cells[1]).split('/')[0].trim();
+    const description = cleanMarkdownText(cells[2]);
+    const contact = cleanMarkdownText(cells[3] || '');
+    const extra = cleanMarkdownText(cells.slice(4).join(' '));
+    const resource = {
+      name,
+      type: type || category,
+      phone: firstPhone(contact) || firstPhone(extra),
+      address: /\b\d{2,6}\s+[A-Za-z][A-Za-z0-9 .'-]*(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Way|Court|Ct)\b/i.test(extra) ? extra : '',
+      url: firstUrl(contact) || firstUrl(extra),
+      why: description,
+      nextStep: extra || description,
+      source: 'yolo_resources.md',
+    };
+
+    if (categoryMatchesResource(category, resource)) {
+      resources.push(resource);
+    }
+  }
+  return resources;
+}
+
+async function getCuratedResources(category) {
+  const guideResources = parseGuideTableResources(await loadCuratedResourceGuide(), category);
+  const staticResources =
+    category === 'housing'
+      ? HOUSING_STATIC.map((r) => ({
+        name: r.name,
+        type: r.type,
+        phone: r.phone || '',
+        address: r.distance || '',
+        url: r.url,
+        why: r.description,
+        nextStep: r.description,
+        source: 'local_static',
+      }))
+      : [];
+  return dedupeResources([...guideResources, ...staticResources]);
+}
+
+async function fetchCraigslistListings(budgetMax, unitType) {
+  let url = 'https://sacramento.craigslist.org/search/apa?format=rss&postal=95616&search_distance=3&sort=date';
+  if (budgetMax) url += `&max_price=${budgetMax}`;
+  if (unitType && unitType !== 'any') {
+    const brMap = { studio: '0', '1br': '1', '2br': '2', '3br': '3' };
+    const br = brMap[unitType];
+    if (br !== undefined) {
+      url += `&min_bedrooms=${br}&max_bedrooms=${br}`;
+    }
+  }
+
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; VoiceBridge/1.0)' },
+    signal: AbortSignal.timeout(6000),
+  });
+
+  if (!response.ok) throw new Error(`Craigslist returned ${response.status}`);
+
+  const text = await response.text();
+  const items = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+
+  while ((m = itemRe.exec(text)) !== null && items.length < 5) {
+    const chunk = m[1];
+    const title = (chunk.match(/<title><!\[CDATA\[(.*?)\]\]>/)?.[1] ?? chunk.match(/<title>(.*?)<\/title>/)?.[1] ?? '').trim();
+    const rawLink = chunk.match(/<link>(.*?)<\/link>/)?.[1]?.trim() ?? '';
+    // Craigslist sometimes puts the URL after <link/> as a text node
+    const link = rawLink || (chunk.match(/<guid[^>]*>(https?:\/\/[^<]+)<\/guid>/)?.[1] ?? '');
+    const price = title.match(/\$[\d,]+/)?.[0] ?? chunk.match(/\$[\d,]+/)?.[0] ?? 'contact for price';
+    const decoded = title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+    if (decoded && link) items.push({ title: decoded, price, url: link, source: 'Craigslist' });
+  }
+
+  return items;
+}
+
+export async function search_housing(args) {
+  const { location_preference, budget_max, unit_type } = args;
+
+  let liveListings = [];
+  try {
+    liveListings = await fetchCraigslistListings(budget_max, unit_type);
+  } catch (e) {
+    console.warn('[Housing] Craigslist scrape failed:', e.message);
+  }
+
+  const searchLinks = HOUSING_STATIC.map((r) => {
+    if (budget_max && r.type === 'search_portal' && r.url.includes('craigslist')) {
+      return { ...r, url: r.url + `&max_price=${budget_max}` };
+    }
+    if (budget_max && r.url.includes('zillow')) {
+      return { ...r, url: r.url + `?price=0-${budget_max}` };
+    }
+    return r;
+  });
+
+  return {
+    live_listings: liveListings,
+    search_links: searchLinks,
+    filters_applied: {
+      location: location_preference,
+      budget_max: budget_max ?? null,
+      unit_type: unit_type ?? 'any',
+    },
+    note: liveListings.length > 0
+      ? `Found ${liveListings.length} current listings near Davis. Availability and prices change daily — confirm with landlords.`
+      : 'Live listings unavailable right now. Share the search links below with the patient so they can browse current options.',
+  };
+}
+
 export async function lookup_resources(args) {
+  const curatedResources = await getCuratedResources(args.category);
+
   if (process.env.BACKBOARD_API_KEY) {
     try {
       const { matches, escalation_note } = await Promise.race([
@@ -236,10 +514,13 @@ export async function lookup_resources(args) {
         ),
       ]);
       return {
-        resources: matches.map((m) => ({
-          name: m.name, address: m.address || '', phone: m.phone || '',
-          type: m.type, why: m.why || '', nextStep: m.nextStep || '',
-        })),
+        resources: dedupeResources([
+          ...matches.map((m) => ({
+            name: m.name, address: m.address || '', phone: m.phone || '',
+            url: m.url || '', type: m.type, why: m.why || '', nextStep: m.nextStep || '',
+          })),
+          ...curatedResources,
+        ]).slice(0, 7),
         escalation_note: escalation_note || null,
         category: args.category,
       };
@@ -248,7 +529,7 @@ export async function lookup_resources(args) {
     }
   }
   return {
-    resources: FALLBACK_RESOURCES[args.category] || FALLBACK_RESOURCES.clinic,
+    resources: curatedResources.length ? curatedResources.slice(0, 7) : FALLBACK_RESOURCES[args.category] || FALLBACK_RESOURCES.clinic,
     category: args.category,
   };
 }
@@ -418,10 +699,19 @@ export async function book_appointment(args, broadcast, userContext = null) {
   };
 }
 
+export async function send_email(args) {
+  const { to, subject, body_text } = args;
+  if (!to || !to.includes('@')) return { success: false, error: 'Invalid email address.' };
+  await sendResourceEmail({ to, subject, bodyText: body_text });
+  return { success: true, message: `Email sent to ${to}.` };
+}
+
 export const handlers = {
   tag_urgency,
   finalize_intake,
   lookup_resources,
+  search_housing,
+  send_email,
   get_available_slots,
   find_nearest_facility,
   check_resource_access,

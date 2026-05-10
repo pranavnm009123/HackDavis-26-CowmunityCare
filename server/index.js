@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import dotenv from 'dotenv';
 import { WebSocketServer, WebSocket } from 'ws';
+import Anthropic from '@anthropic-ai/sdk';
 import { createGeminiSession } from './geminiSession.js';
 import { isValidMode } from './intakeTemplates.js';
 import * as storage from './storage.js';
@@ -22,8 +23,9 @@ const PORT = process.env.PORT || 3001;
 const app = express();
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (_req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
 const server = http.createServer(app);
@@ -202,6 +204,33 @@ app.get('/users/:userId', async (req, res) => {
     res.json({ user });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+const anthropicClient = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+
+app.post('/translate', async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.json({ translated: text });
+  if (!anthropicClient) {
+    console.warn('[translate] ANTHROPIC_API_KEY not set');
+    return res.status(503).json({ error: 'Translation service not configured — set ANTHROPIC_API_KEY' });
+  }
+  try {
+    const response = await anthropicClient.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `Translate the following text to English. The text may be in Hindi (Devanagari script), Hinglish (Hindi words written in English/Latin letters), or mixed Hindi-English. Output only the English translation — nothing else, no explanation:\n\n${text}`,
+      }],
+    });
+    res.json({ translated: response.content[0].text.trim() });
+  } catch (e) {
+    console.error('[translate]', e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 

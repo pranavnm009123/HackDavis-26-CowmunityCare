@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
 
+const MODE_LABELS = { clinic: 'Free Clinic', shelter: 'Housing & Shelter', food_aid: 'Food Aid' };
+const URGENCY_COLORS = { CRITICAL: '#d32f2f', HIGH: '#e65100', MEDIUM: '#f57f17', LOW: '#2e7d32' };
+
 let transporter = null;
 
 async function getTransporter() {
@@ -29,6 +32,140 @@ async function getTransporter() {
   }
 
   return transporter;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function normalizeUrl(url) {
+  if (!url) return '';
+  const clean = String(url).trim();
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`;
+}
+
+function formatAppointment(appointment) {
+  if (!appointment) return '';
+  const when = [appointment.slot_date || appointment.date, appointment.slot_time || appointment.time].filter(Boolean).join(' at ');
+  const who = appointment.doctor_name || appointment.specialization || appointment.appointment_type || 'Follow-up team';
+  const where = appointment.facility_name || appointment.location || '';
+  const status = appointment.status || 'pending';
+  return `<div style="background:#fff7df;border-radius:8px;padding:16px;margin:16px 0">
+    <p style="margin:0 0 4px;font-size:0.8rem;color:#745600;font-weight:600">Appointment / Follow-up</p>
+    <p style="margin:0"><strong>${escapeHtml(who)}</strong>${when ? ` — ${escapeHtml(when)}` : ''}${where ? ` at ${escapeHtml(where)}` : ''}</p>
+    <p style="margin:6px 0 0;color:#5e6b73">Status: ${escapeHtml(status)}</p>
+  </div>`;
+}
+
+export async function sendIntakeConfirmation({ to, name, card, mode, structuredFields = {}, appointment = null }) {
+  const t = await getTransporter();
+  const modeLabel = MODE_LABELS[mode] || mode;
+  const urgency = card?.urgency?.level || card?.urgency || 'LOW';
+  const urgencyColor = URGENCY_COLORS[urgency] || '#2e7d32';
+  const summary = card?.english_summary || 'Your intake has been recorded.';
+  const nextStep = card?.recommended_next_step || '';
+  const resources = Array.isArray(card?.resource_matches) ? card.resource_matches : [];
+  const isUrgent = urgency === 'CRITICAL' || urgency === 'HIGH';
+
+  const urgentBanner = isUrgent ? `
+    <div style="background:${urgency === 'CRITICAL' ? '#ffebee' : '#fff3e0'};border:2px solid ${urgencyColor};border-radius:10px;padding:18px 20px;margin:0 0 20px">
+      <p style="color:${urgencyColor};font-weight:700;margin:0 0 8px;font-size:1.05rem">${urgency === 'CRITICAL' ? '⚠ Urgent — Please Act Now' : '⚠ Action Needed'}</p>
+      <p style="margin:0 0 6px">Your situation was flagged as <strong>${escapeHtml(urgency)}</strong>. Please use the resources listed below or call <strong>911</strong> if you are in immediate danger.</p>
+      ${nextStep ? `<p style="margin:10px 0 0;font-weight:600;color:#143329">${escapeHtml(nextStep)}</p>` : ''}
+    </div>` : '';
+
+  const resourceCardHtml = (r) => {
+    const n = typeof r === 'string' ? r : (r.name || '');
+    const address = r.address ? `<div style="color:#4a6b5a;font-size:0.88rem;margin-top:3px">${escapeHtml(r.address)}</div>` : '';
+    const phone = r.phone
+      ? `<div style="margin-top:5px"><a href="tel:${r.phone.replace(/[^0-9+]/g, '')}" style="color:#1d8f59;font-weight:600;text-decoration:none">${escapeHtml(r.phone)}</a></div>`
+      : '';
+    const hours = r.hours ? `<div style="color:#6b7a74;font-size:0.84rem;margin-top:2px">${escapeHtml(r.hours)}</div>` : '';
+    const rawUrl = r.url || '';
+    const href = normalizeUrl(rawUrl);
+    const urlDisplay = rawUrl.replace(/^https?:\/\//, '');
+    const urlHtml = href
+      ? `<div style="margin-top:5px"><a href="${escapeHtml(href)}" style="color:#1d8f59;font-size:0.88rem">${escapeHtml(urlDisplay)}</a></div>`
+      : '';
+    const why = r.why ? `<div style="color:#4a6b5a;font-size:0.85rem;font-style:italic;margin-top:5px">${escapeHtml(r.why)}</div>` : '';
+    const nextStep = r.nextStep || r.next_step || '';
+    const nextStepRes = nextStep ? `<div style="color:#143329;font-size:0.85rem;margin-top:5px"><strong>Next step:</strong> ${escapeHtml(nextStep)}</div>` : '';
+    return `<div style="background:#fff;border-radius:8px;padding:14px 16px;margin:10px 0;border:1px solid #d4e6d9">
+      <div style="font-weight:700;color:#143329;font-size:0.97rem">${escapeHtml(n)}</div>
+      ${address}${phone}${hours}${urlHtml}${why}${nextStepRes}
+    </div>`;
+  };
+
+  const resourcesHtml = resources.length > 0
+    ? `<h3 style="color:#143329;margin:24px 0 4px;font-size:1rem">Resources for You</h3>
+       ${resources.map(resourceCardHtml).join('')}`
+    : '';
+
+  const info = await t.sendMail({
+    from: '"VoiceBridge" <noreply@voicebridge.care>',
+    to,
+    subject: `Your ${modeLabel} Intake — VoiceBridge Confirmation`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#143329">
+        <div style="background:#143329;padding:20px 24px;border-radius:12px 12px 0 0">
+          <h1 style="color:#ffffff;margin:0;font-size:1.4rem">VoiceBridge</h1>
+          <p style="color:#a8c5b0;margin:4px 0 0;font-size:0.9rem">${modeLabel} Intake Confirmation</p>
+        </div>
+        <div style="background:#f8faf8;padding:24px;border-radius:0 0 12px 12px">
+          <p>Hi ${name || 'there'},</p>
+          <p>Here is a copy of your session summary and all recommended resources.</p>
+          ${urgentBanner}
+          <div style="background:#fff;border-radius:8px;padding:16px;margin:16px 0;border-left:4px solid ${urgencyColor}">
+            <p style="margin:0 0 6px;font-size:0.8rem;color:#6b7a74;text-transform:uppercase;font-weight:600">Summary</p>
+            <p style="margin:0">${summary}</p>
+          </div>
+          ${!isUrgent && nextStep ? `<div style="background:#e8f5e9;border-radius:8px;padding:16px;margin:16px 0">
+            <p style="margin:0 0 4px;font-size:0.8rem;color:#2e7d32;font-weight:600">Recommended Next Step</p>
+            <p style="margin:0">${escapeHtml(nextStep)}</p>
+          </div>` : ''}
+          ${formatAppointment(appointment)}
+          ${resourcesHtml}
+          <p style="margin-top:24px;color:#4a6b5a">A staff member will follow up with you soon. If your situation becomes urgent, call <strong>911</strong> or go to the nearest emergency room.</p>
+          <p style="color:#6b7a74;font-size:0.82rem;margin-top:24px;border-top:1px solid #e0e0e0;padding-top:16px">
+            VoiceBridge &middot; ${modeLabel}<br>
+            This email was sent to ${to} because you provided this address during your intake session.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+  console.log('[Email] Intake confirmation sent to', to, nodemailer.getTestMessageUrl(info) || '');
+}
+
+export async function sendResourceEmail({ to, subject, bodyText }) {
+  const t = await getTransporter();
+  const html = escapeHtml(bodyText)
+    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#1d8f59">$1</a>')
+    .replace(/\n/g, '<br>');
+  const info = await t.sendMail({
+    from: '"VoiceBridge" <noreply@voicebridge.care>',
+    to,
+    subject,
+    text: bodyText,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#143329">
+        <div style="background:#143329;padding:16px 24px;border-radius:12px 12px 0 0">
+          <h2 style="color:#fff;margin:0;font-size:1.2rem">VoiceBridge</h2>
+        </div>
+        <div style="background:#f8faf8;padding:24px;border-radius:0 0 12px 12px;line-height:1.7">
+          ${html}
+          <p style="color:#6b7a74;font-size:0.82rem;margin-top:32px;border-top:1px solid #e0e0e0;padding-top:16px">
+            VoiceBridge &middot; Sent on request during your intake session
+          </p>
+        </div>
+      </div>
+    `,
+  });
+  console.log('[Email] Resource email sent to', to, nodemailer.getTestMessageUrl(info) || '');
 }
 
 export async function sendWelcomeEmail({ to, userId, name }) {
@@ -63,20 +200,28 @@ export async function sendAppointmentConfirmation({ to, userId, name, appointmen
     emergency_escalation: 'Emergency Escalation',
   };
   const t = await getTransporter();
+  const appointmentType = TYPE_LABELS[appointment.appointment_type] || appointment.specialization || 'Follow-up';
+  const appointmentWhen =
+    appointment.suggested_time ||
+    [appointment.slot_date || appointment.date, appointment.slot_time || appointment.time].filter(Boolean).join(' at ') ||
+    'Staff will confirm the time';
+  const appointmentReason = appointment.reason || appointment.notes || 'Follow-up from intake';
   const info = await t.sendMail({
     from: '"VoiceBridge" <noreply@voicebridge.care>',
     to,
-    subject: `Appointment Scheduled — ${TYPE_LABELS[appointment.appointment_type] || appointment.appointment_type}`,
+    subject: `Appointment Scheduled — ${appointmentType}`,
     html: `
       <div style="font-family:sans-serif;max-width:540px;margin:0 auto;color:#143329">
         <h2 style="color:#143329">Appointment Confirmation</h2>
-        <p>Hi ${name || 'there'} (ID: <strong>${userId}</strong>),</p>
+        <p>Hi ${name || 'there'}${userId ? ` (ID: <strong>${userId}</strong>)` : ''},</p>
         <p>A follow-up appointment has been arranged based on your intake.</p>
         <table style="width:100%;border-collapse:collapse;margin:20px 0">
-          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600;width:140px">Type</td><td>${TYPE_LABELS[appointment.appointment_type] || appointment.appointment_type}</td></tr>
-          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">When</td><td>${appointment.suggested_time}</td></tr>
-          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Reason</td><td>${appointment.reason}</td></tr>
-          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Urgency</td><td>${appointment.urgency}</td></tr>
+          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600;width:140px">Type</td><td>${appointmentType}</td></tr>
+          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">When</td><td>${appointmentWhen}</td></tr>
+          ${appointment.doctor_name ? `<tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Provider</td><td>${appointment.doctor_name}</td></tr>` : ''}
+          ${appointment.facility_name ? `<tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Location</td><td>${appointment.facility_name}</td></tr>` : ''}
+          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Reason</td><td>${appointmentReason}</td></tr>
+          <tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Urgency</td><td>${appointment.urgency || 'LOW'}</td></tr>
           ${appointment.notes ? `<tr><td style="padding:8px 0;color:#4a6b5a;font-weight:600">Notes</td><td>${appointment.notes}</td></tr>` : ''}
         </table>
         <p>Please arrive at your scheduled time. Bring your VoiceBridge ID.</p>

@@ -90,8 +90,8 @@ const functionDeclarations = [
       properties: {
         category: {
           type: Type.STRING,
-          enum: ['clinic', 'shelter', 'housing', 'food', 'pharmacy', 'interpreter', 'emergency_line', 'insurance_help'],
-          description: 'Use "housing" for general housing search, student housing, affordable housing programs. Use "shelter" for emergency shelter. Use "insurance_help" for Medi-Cal/Covered CA.',
+          enum: ['clinic', 'shelter', 'housing', 'food', 'grocery_store', 'pharmacy', 'interpreter', 'emergency_line', 'insurance_help'],
+          description: 'Use "housing" for general housing search, student housing, affordable housing programs. Use "shelter" for emergency shelter. Use "grocery_store" when the patient asks where to buy food, groceries, or supplies nearby. Use "food" for free food banks and mutual aid. Use "insurance_help" for Medi-Cal/Covered CA.',
         },
         city: { type: Type.STRING },
       },
@@ -174,6 +174,46 @@ const functionDeclarations = [
         intake_id: { type: Type.STRING },
       },
       required: ['slot_id', 'patient_name', 'reason', 'urgency'],
+    },
+  },
+  {
+    name: 'send_email',
+    description: 'Send an email to the patient with resource links, apartment listings, or other information they requested. Only call this if the patient has explicitly provided their email address and asked you to send something.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        to: { type: Type.STRING, description: 'Patient email address.' },
+        subject: { type: Type.STRING, description: 'Email subject line.' },
+        body_text: {
+          type: Type.STRING,
+          description: 'Plain-text email body. Include full names, addresses, phone numbers, and URLs for all resources mentioned.',
+        },
+      },
+      required: ['to', 'subject', 'body_text'],
+    },
+  },
+  {
+    name: 'search_housing',
+    description: 'Search for available apartments and rental listings near UC Davis campus or in Davis, CA. Returns live listings with prices and direct application links. Call this when a patient or student asks about finding an apartment, available rentals, or housing near campus.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        location_preference: {
+          type: Type.STRING,
+          enum: ['near_campus', 'downtown_davis', 'any_davis'],
+          description: 'Where in Davis the patient prefers to live.',
+        },
+        budget_max: {
+          type: Type.NUMBER,
+          description: 'Maximum monthly rent in USD. Omit if not stated by the patient.',
+        },
+        unit_type: {
+          type: Type.STRING,
+          enum: ['studio', '1br', '2br', '3br', 'any'],
+          description: 'Preferred bedroom count.',
+        },
+      },
+      required: ['location_preference'],
     },
   },
   {
@@ -325,8 +365,7 @@ export async function createGeminiSession({
     model: MODEL,
     config: {
       responseModalities: ['AUDIO'],
-      /* Prefer minimal latency; Gemini 3.1 Live documents LOW for light reasoning. */
-      thinkingConfig: { thinkingLevel: 'MINIMAL' },
+      thinkingConfig: { thinkingLevel: 'LOW' },
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       speechConfig: {
@@ -360,9 +399,13 @@ export async function createGeminiSession({
     },
   });
 
+  const contactContext = userContext
+    ? `Start the intake now. Patient contact information was collected before this chat: name=${userContext.name || 'Not provided'}, email=${userContext.email || 'Not provided'}, phone=${userContext.phone || 'Not provided'}. Do not ask for name, email, or phone again unless the patient needs to correct it. When you call finalize_intake, include full_name, contact_email, and contact_phone in structured_fields using this contact information if the patient did not provide different values during the chat.`
+    : 'Hi. Please start by asking for my name.';
+
   /* Gemini 3.1 Flash Live: incremental user content during the session should use
      sendRealtimeInput, not sendClientContent (unless seeding history explicitly). */
-  session.sendRealtimeInput({ text: 'Hello.' });
+  session.sendRealtimeInput({ text: contactContext });
 
   return {
     sendAudio(base64Pcm) {
