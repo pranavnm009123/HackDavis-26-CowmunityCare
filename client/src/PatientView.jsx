@@ -218,6 +218,7 @@ export default function PatientView() {
   const [signedResponsePending, setSignedResponsePending] = useState(false);
   const [showEnglish, setShowEnglish] = useState(false);
   const [translations, setTranslations] = useState({});
+  const [mapBanner, setMapBanner] = useState(null); // { url, query }
 
   const { token, user: authUser, isLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
@@ -244,7 +245,7 @@ export default function PatientView() {
   const handleSocketMessage = useCallback((message) => {
     if (message.type === 'NAVIGATE_REQUEST') {
       const q = encodeURIComponent(message.query || '');
-      window.open(`/navigate${q ? `?q=${q}` : ''}`, '_blank', 'noopener');
+      setMapBanner({ url: `/navigate${q ? `?q=${q}` : ''}`, query: message.query || 'a location' });
       return;
     }
     if (message.type === 'session') {
@@ -644,6 +645,13 @@ export default function PatientView() {
         {sessionStarted && (
           <div className="session-split-body">
             <div className="session-left">
+              {mapBanner && (
+                <div className="map-banner">
+                  <span>Map ready for <strong>{mapBanner.query}</strong></span>
+                  <a href={mapBanner.url} target="_blank" rel="noopener noreferrer" className="map-banner-btn" onClick={() => setMapBanner(null)}>Open map</a>
+                  <button className="map-banner-close" onClick={() => setMapBanner(null)} aria-label="Dismiss">✕</button>
+                </div>
+              )}
               {conversation.length > 0 && (
                 <div className="transcript-toolbar">
                   <button

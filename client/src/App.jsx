@@ -460,6 +460,42 @@ h2 {
   color: var(--aggie-blue);
 }
 
+.map-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #e8f0fe;
+  border: 1px solid #93b4f7;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  color: #1a2440;
+}
+.map-banner span { flex: 1; }
+.map-banner-btn {
+  background: var(--aggie-gold, #ffcc00);
+  color: #1a2440;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.map-banner-btn:hover { background: #f0b800; }
+.map-banner-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
 .transcript-toolbar {
   display: flex;
   justify-content: flex-end;
