@@ -167,7 +167,7 @@ export function useAudio({ send, incomingMessage }) {
       silenceRef.current = silence;
       setRecording(true);
     } catch (startError) {
-      setError(startError.message || 'Unable to start microphone.');
+      setError(startError.message || 'Unable to start speech input.');
       stopRecording();
     }
   }, [getAudioContext, recording, send, stopRecording]);

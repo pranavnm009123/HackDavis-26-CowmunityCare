@@ -80,22 +80,22 @@ export default function StaffView() {
   }
 
   return (
-    <main className="staff-shell">
+    <main className="staff-shell" id="main-content">
       <header className="staff-header">
         <div className="brand-lockup">
-          <p className="eyebrow">Healthcare AI intake · Staff</p>
-          <h1>VoiceBridge intake queue</h1>
+          <p className="eyebrow">Accessible Community Intake · Staff</p>
+          <h1>CowmunityCare intake queue</h1>
           <p className="brand-tagline">
             Triage live voice intakes: urgency flags, structured fields, and status updates in one queue.
           </p>
         </div>
-        <div className={connected ? 'connection is-live' : 'connection'}>
+        <div className={connected ? 'connection is-live' : 'connection'} role="status" aria-live="polite">
           <span />
           {connected ? 'Live' : 'Offline'}
         </div>
       </header>
 
-      <nav className="staff-tabs">
+      <nav className="staff-tabs" aria-label="Staff dashboard sections">
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} end to="/staff">Queue</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/appointments">Appointments</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/analytics">Analytics</NavLink>
@@ -108,13 +108,13 @@ export default function StaffView() {
             <h2>{alert.mode || 'clinic'} · {alert.level}: {alert.reason}</h2>
             <p>{(alert.symptoms || []).join(', ') || 'Symptoms pending'}</p>
           </div>
-          <button type="button" onClick={() => setAlert(null)}>
+          <button type="button" aria-label="Dismiss urgency alert" onClick={() => setAlert(null)}>
             Dismiss
           </button>
         </section>
       )}
 
-      {error && <p className="inline-error">{error}</p>}
+      {error && <p className="inline-error" role="alert">{error}</p>}
 
       <section className="queue-panel">
         <div className="queue-header">
@@ -126,14 +126,14 @@ export default function StaffView() {
           </div>
           <div className="queue-controls">
             <span className="status-pill">{filteredCards.length} shown · {cards.length} total</span>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <select aria-label="Sort intake requests" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="time">Newest first</option>
               <option value="urgency">By urgency</option>
               <option value="mode">By mode</option>
             </select>
             <div className="view-toggle">
-              <button className={viewMode === 'grid' ? 'is-active' : ''} type="button" onClick={() => setViewMode('grid')}>Grid</button>
-              <button className={viewMode === 'list' ? 'is-active' : ''} type="button" onClick={() => setViewMode('list')}>List</button>
+              <button aria-pressed={viewMode === 'grid'} className={viewMode === 'grid' ? 'is-active' : ''} type="button" onClick={() => setViewMode('grid')}>Grid</button>
+              <button aria-pressed={viewMode === 'list'} className={viewMode === 'list' ? 'is-active' : ''} type="button" onClick={() => setViewMode('list')}>List</button>
             </div>
           </div>
         </div>
@@ -150,6 +150,7 @@ export default function StaffView() {
               <button
                 key={value}
                 className={`category-tab cat-${value}${filters.mode === value ? ' active' : ''}`}
+                aria-pressed={filters.mode === value}
                 type="button"
                 onClick={() => setFilters((f) => ({ ...f, mode: value }))}
               >
@@ -162,6 +163,7 @@ export default function StaffView() {
 
         <div className="filter-bar filter-bar-3col">
           <select
+            aria-label="Filter by urgency"
             value={filters.urgency}
             onChange={(event) => setFilters((current) => ({ ...current, urgency: event.target.value }))}
           >
@@ -172,6 +174,7 @@ export default function StaffView() {
             <option value="LOW">Low</option>
           </select>
           <select
+            aria-label="Filter by status"
             value={filters.status}
             onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
           >
@@ -182,6 +185,7 @@ export default function StaffView() {
             <option value="resolved">Resolved</option>
           </select>
           <input
+            aria-label="Search intake requests"
             placeholder="Search name, summary, language…"
             type="search"
             value={filters.search}

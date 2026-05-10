@@ -6,8 +6,8 @@ import {
 import { NavLink } from 'react-router-dom';
 
 const BASE = `http://${window.location.hostname}:3001`;
-const URGENCY_COLORS = { CRITICAL: '#be2020', HIGH: '#d86d1f', MEDIUM: '#b38b08', LOW: '#6b7a74' };
-const INSURANCE_COLORS = { Insured: '#3a7d5a', Uninsured: '#be2020', Unknown: '#9aa9a1' };
+const URGENCY_COLORS = { CRITICAL: '#be2020', HIGH: '#b85412', MEDIUM: '#b38b08', LOW: '#154872' };
+const INSURANCE_COLORS = { Insured: '#154872', Uninsured: '#be2020', Unknown: '#8fa4b8' };
 
 function getLast7Days() {
   return Array.from({ length: 7 }, (_, i) => {
@@ -144,23 +144,23 @@ export default function AnalyticsView() {
   const householdData = Object.entries(householdMap).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, count]) => ({ name, count }));
 
   return (
-    <main className="analytics-shell">
+    <main className="analytics-shell" id="main-content">
       <header className="staff-header">
         <div className="brand-lockup">
-          <p className="eyebrow">Healthcare AI intake · Analytics</p>
-          <h1>VoiceBridge insights</h1>
+          <p className="eyebrow">Accessible Community Intake · Analytics</p>
+          <h1>CowmunityCare insights</h1>
           <p className="brand-tagline">Intake volume, urgency mix, modes, and languages over recent activity.</p>
         </div>
-        <div className="connection is-live"><span />Live</div>
+        <div className="connection is-live" role="status" aria-live="polite"><span />Live</div>
       </header>
 
-      <nav className="staff-tabs">
+      <nav className="staff-tabs" aria-label="Staff dashboard sections">
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} end to="/staff">Queue</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/appointments">Appointments</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/analytics">Analytics</NavLink>
       </nav>
 
-      {loadError && <div className="analytics-error">{loadError}</div>}
+      {loadError && <div className="analytics-error" role="alert">{loadError}</div>}
 
       {intakes && (
         <>
@@ -171,6 +171,7 @@ export default function AnalyticsView() {
                 <button
                   key={value}
                   className={`category-tab cat-${value}${selectedMode === value ? ' active' : ''}`}
+                  aria-pressed={selectedMode === value}
                   type="button"
                   onClick={() => setSelectedMode(value)}
                 >
@@ -196,7 +197,7 @@ export default function AnalyticsView() {
             </div>
             <div className="summary-stat">
               <p className="eyebrow">{selectedMode === 'shelter' ? 'Safety risk flagged' : selectedMode === 'food_aid' ? 'High urgency' : 'Uninsured patients'}</p>
-              <strong style={{ color: '#d86d1f' }}>
+              <strong style={{ color: '#b85412' }}>
                 {selectedMode === 'shelter'
                   ? filteredIntakes.filter((c) => c.structured_fields?.safety_risk && c.structured_fields.safety_risk !== 'Not collected' && c.structured_fields.safety_risk !== 'No').length
                   : selectedMode === 'food_aid'
@@ -211,7 +212,7 @@ export default function AnalyticsView() {
           </div>
 
           <div className="chart-grid">
-            <div className="chart-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="chart-card" role="img" aria-label={`Activity over the last 7 days: ${total} intakes and ${apptTotal} appointments.`} style={{ gridColumn: '1 / -1' }}>
               <h3>Activity — last 7 days</h3>
               {total === 0 && apptTotal === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">
@@ -221,13 +222,13 @@ export default function AnalyticsView() {
                     <Tooltip />
                     <Legend />
                     <Line dataKey="intakes" dot={false} name="Intakes" stroke="#0d274e" strokeWidth={2.5} type="monotone" />
-                    <Line dataKey="appointments" dot={false} name="Appointments" stroke="#d86d1f" strokeWidth={2} type="monotone" strokeDasharray="4 2" />
+                    <Line dataKey="appointments" dot={false} name="Appointments" stroke="#b85412" strokeWidth={2} type="monotone" strokeDasharray="4 2" />
                   </LineChart>
                 </ResponsiveContainer>
               )}
             </div>
 
-            <div className="chart-card">
+            <div className="chart-card" role="img" aria-label={`Urgency breakdown with ${criticalCount} critical alerts and ${highRiskCount} high-risk cases.`}>
               <h3>Urgency breakdown</h3>
               {urgencyData.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">
@@ -245,7 +246,7 @@ export default function AnalyticsView() {
             </div>
 
             {selectedMode === 'shelter' ? (
-              <div className="chart-card">
+              <div className="chart-card" role="img" aria-label={`Housing status breakdown for ${housingData.length} categories.`}>
                 <h3>Housing status</h3>
                 {housingData.length === 0 ? <EmptyChart /> : (
                   <ResponsiveContainer height={210} width="100%">
@@ -253,13 +254,13 @@ export default function AnalyticsView() {
                       <XAxis allowDecimals={false} tick={{ fontSize: 11 }} type="number" />
                       <YAxis dataKey="name" tick={{ fontSize: 10 }} type="category" width={110} />
                       <Tooltip />
-                      <Bar dataKey="count" fill="#d86d1f" name="Cases" radius={[0, 6, 6, 0]} />
+                      <Bar dataKey="count" fill="#b85412" name="Cases" radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
               </div>
             ) : selectedMode === 'food_aid' ? (
-              <div className="chart-card">
+              <div className="chart-card" role="img" aria-label={`Household size breakdown for ${householdData.length} groups.`}>
                 <h3>Household size</h3>
                 {householdData.length === 0 ? <EmptyChart /> : (
                   <ResponsiveContainer height={210} width="100%">
@@ -273,7 +274,7 @@ export default function AnalyticsView() {
                 )}
               </div>
             ) : (
-              <div className="chart-card">
+              <div className="chart-card" role="img" aria-label={`Insurance status breakdown. ${uninsuredCount} uninsured patients.`}>
                 <h3>Insurance status</h3>
                 {insuranceData.length === 0 ? <EmptyChart /> : (
                   <ResponsiveContainer height={210} width="100%">
@@ -291,7 +292,7 @@ export default function AnalyticsView() {
               </div>
             )}
 
-            <div className="chart-card">
+            <div className="chart-card" role="img" aria-label={`Appointments by facility across ${facilityData.length} facilities.`}>
               <h3>Appointments by facility</h3>
               {facilityData.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">
@@ -299,13 +300,13 @@ export default function AnalyticsView() {
                     <XAxis allowDecimals={false} tick={{ fontSize: 11 }} type="number" />
                     <YAxis dataKey="name" tick={{ fontSize: 10 }} type="category" width={130} />
                     <Tooltip />
-                    <Bar dataKey="count" fill="#17382d" name="Appointments" radius={[0, 6, 6, 0]} />
+                    <Bar dataKey="count" fill="#154872" name="Appointments" radius={[0, 6, 6, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
 
-            <div className="chart-card">
+            <div className="chart-card" role="img" aria-label={`Requests by category: clinic ${modeCounts.clinic}, shelter ${modeCounts.shelter}, food aid ${modeCounts.food_aid}.`}>
               <h3>Requests by category</h3>
               {allIntakes.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">
@@ -319,7 +320,7 @@ export default function AnalyticsView() {
               )}
             </div>
 
-            <div className="chart-card">
+            <div className="chart-card" role="img" aria-label={`Languages spoken across ${langCount} languages.`}>
               <h3>Languages spoken</h3>
               {langData.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">

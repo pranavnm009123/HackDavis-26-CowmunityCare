@@ -39,7 +39,7 @@ export default function IntakeCard({ card, compact = false, onStatusChange }) {
 
   if (compact) {
     return (
-      <article className="intake-card-list">
+      <article className="intake-card-list" aria-label={`Intake card for ${patientName}`}>
         <div className="badge-row">
           <span className="mode-badge">{modeLabels[card.mode] || 'Clinic'}</span>
           <span className={urgencyClass[level] || urgencyClass.LOW}>{level}</span>
@@ -56,6 +56,7 @@ export default function IntakeCard({ card, compact = false, onStatusChange }) {
               disabled={card.status === s || terminalStatus}
               key={s}
               type="button"
+              aria-label={`Mark intake for ${patientName} as ${humanize(s)}`}
               onClick={() => onStatusChange(card.id, s)}
             >
               {humanize(s)}
@@ -67,7 +68,7 @@ export default function IntakeCard({ card, compact = false, onStatusChange }) {
   }
 
   return (
-    <article className="intake-card">
+    <article className="intake-card" aria-label={`Intake card for ${patientName}`}>
       <div className="card-topline">
         <div className="badge-row">
           <span className="mode-badge">{modeLabels[card.mode] || 'Clinic'}</span>
@@ -159,6 +160,7 @@ export default function IntakeCard({ card, compact = false, onStatusChange }) {
             disabled={card.status === status}
             key={status}
             type="button"
+            aria-label={`Mark intake for ${patientName} as ${humanize(status)}`}
             onClick={() => onStatusChange(card.id, status)}
           >
             {terminalStatus && card.status === status ? humanize(status) : humanize(status)}

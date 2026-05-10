@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSocket } from './useSocket.js';
 
 const BASE = `http://${window.location.hostname}:3001`;
-const URGENCY_COLORS = { CRITICAL: '#be2020', HIGH: '#d86d1f', MEDIUM: '#b38b08', LOW: '#3a7d5a' };
+const URGENCY_COLORS = { CRITICAL: '#be2020', HIGH: '#b85412', MEDIUM: '#b38b08', LOW: '#154872' };
 const SPEC_LABELS = {
   general_practice: 'General Practice',
   cardiology: 'Cardiology',
@@ -22,12 +22,16 @@ const FACILITY_TYPE_LABELS = {
 };
 const FACILITY_TYPE_COLORS = {
   hospital: '#be2020',
-  free_clinic: '#17382d',
-  urgent_care: '#d86d1f',
-  shelter: '#3a5a8a',
-  food_bank: '#6b5c2a',
-  pharmacy: '#4a3a6a',
+  free_clinic: '#0d274e',
+  urgent_care: '#b85412',
+  shelter: '#154872',
+  food_bank: '#b38b08',
+  pharmacy: '#0d274e',
 };
+
+function chipTextColor(levelOrType) {
+  return ['CRITICAL', 'HIGH', 'hospital', 'urgent_care'].includes(levelOrType) ? '#ffffff' : '#0d274e';
+}
 
 const EMPTY_DOCTOR = { name: '', specialization: 'general_practice', phone: '', location: '', facility_id: '' };
 const EMPTY_SLOT = { date: '', time: '' };
@@ -163,32 +167,32 @@ export default function AppointmentsView() {
   const facilityMap = Object.fromEntries(facilities.map((f) => [f.id, f]));
 
   return (
-    <main className="staff-shell">
+    <main className="staff-shell" id="main-content">
       <header className="staff-header">
-        <div><p className="eyebrow">Staff dashboard</p><h1>VoiceBridge intake queue</h1></div>
-        <div className={connected ? 'connection is-live' : 'connection'}><span />{connected ? 'Live' : 'Offline'}</div>
+        <div><p className="eyebrow">Staff dashboard</p><h1>CowmunityCare intake queue</h1></div>
+        <div className={connected ? 'connection is-live' : 'connection'} role="status" aria-live="polite"><span />{connected ? 'Live' : 'Offline'}</div>
       </header>
 
-      <nav className="staff-tabs">
+      <nav className="staff-tabs" aria-label="Staff dashboard sections">
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} end to="/staff">Queue</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/appointments">Appointments</NavLink>
         <NavLink className={({ isActive }) => isActive ? 'staff-tab active' : 'staff-tab'} to="/staff/analytics">Analytics</NavLink>
       </nav>
 
       <div className="appt-page-tabs">
-        <button className={activeTab === 'bookings' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('bookings')}>
+        <button aria-pressed={activeTab === 'bookings'} className={activeTab === 'bookings' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('bookings')}>
           Booked appointments <span className="appt-count">{appointments.length}</span>
         </button>
-        <button className={activeTab === 'doctors' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('doctors')}>
+        <button aria-pressed={activeTab === 'doctors'} className={activeTab === 'doctors' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('doctors')}>
           Doctors &amp; availability <span className="appt-count">{doctors.length}</span>
         </button>
-        <button className={activeTab === 'facilities' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('facilities')}>
+        <button aria-pressed={activeTab === 'facilities'} className={activeTab === 'facilities' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('facilities')}>
           Facilities <span className="appt-count">{facilities.length}</span>
         </button>
-        <button className={activeTab === 'add' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('add')}>
+        <button aria-pressed={activeTab === 'add'} className={activeTab === 'add' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('add')}>
           + Add doctor
         </button>
-        <button className={activeTab === 'add-facility' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('add-facility')}>
+        <button aria-pressed={activeTab === 'add-facility'} className={activeTab === 'add-facility' ? 'appt-page-tab active' : 'appt-page-tab'} type="button" onClick={() => setActiveTab('add-facility')}>
           + Add facility
         </button>
       </div>
@@ -199,13 +203,13 @@ export default function AppointmentsView() {
             <div><p className="eyebrow">Bot-confirmed patient appointments</p><h2>Bookings</h2></div>
           </div>
           <div className="filter-bar">
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <select aria-label="Filter appointments by status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <option value="all">All statuses</option>
               <option value="confirmed">Confirmed</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-            <select value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}>
+            <select aria-label="Filter appointments by urgency" value={filterUrgency} onChange={(e) => setFilterUrgency(e.target.value)}>
               <option value="all">All urgency</option>
               <option value="CRITICAL">Critical</option>
               <option value="HIGH">High</option>
@@ -213,12 +217,13 @@ export default function AppointmentsView() {
               <option value="LOW">Low</option>
             </select>
           </div>
-          {loadError && <p className="inline-error">{loadError}</p>}
+          {loadError && <p className="inline-error" role="alert">{loadError}</p>}
           {filtered.length === 0 ? (
             <div className="empty-state"><p>No appointments yet. They appear here when the bot books one with a patient.</p></div>
           ) : (
             <div className="appt-table-wrap">
               <table className="appt-table">
+                <caption className="sr-only">Booked appointments with patient, doctor, facility, urgency, status, and available actions.</caption>
                 <thead><tr>
                   <th>Patient</th><th>Doctor</th><th>Specialization</th>
                   <th>Facility</th><th>Date</th><th>Time</th>
@@ -242,12 +247,12 @@ export default function AppointmentsView() {
                         </td>
                         <td className="appt-time">{a.slot_date || '—'}</td>
                         <td className="appt-time">{a.slot_time || '—'}</td>
-                        <td><span className="urgency-chip" style={{ background: URGENCY_COLORS[a.urgency] }}>{a.urgency}</span></td>
+                        <td><span className="urgency-chip" style={{ background: URGENCY_COLORS[a.urgency], color: chipTextColor(a.urgency) }}>{a.urgency}</span></td>
                         <td className="appt-reason">{a.reason}</td>
                         <td><span className={`appt-status ${a.status}`}>{a.status}</span></td>
                         <td className="appt-actions">
-                          {a.status === 'confirmed' && <button type="button" onClick={() => updateStatus(a.id, 'completed')}>Complete</button>}
-                          {a.status !== 'cancelled' && a.status !== 'completed' && <button className="cancel-btn" type="button" onClick={() => updateStatus(a.id, 'cancelled')}>Cancel</button>}
+                          {a.status === 'confirmed' && <button type="button" aria-label={`Mark appointment for ${a.patient_name} complete`} onClick={() => updateStatus(a.id, 'completed')}>Complete</button>}
+                          {a.status !== 'cancelled' && a.status !== 'completed' && <button className="cancel-btn" type="button" aria-label={`Cancel appointment for ${a.patient_name}`} onClick={() => updateStatus(a.id, 'cancelled')}>Cancel</button>}
                         </td>
                       </tr>
                     );
@@ -323,7 +328,7 @@ export default function AppointmentsView() {
                         <p className="doctor-spec">
                           <span
                             className="urgency-chip"
-                            style={{ background: FACILITY_TYPE_COLORS[f.type] || '#6b7a74', fontSize: 11 }}
+                            style={{ background: FACILITY_TYPE_COLORS[f.type] || '#8fa4b8', color: chipTextColor(f.type), fontSize: 11 }}
                           >
                             {FACILITY_TYPE_LABELS[f.type] || f.type}
                           </span>
@@ -369,14 +374,14 @@ export default function AppointmentsView() {
             <p className="eyebrow" style={{ marginTop: 16 }}>Available time slots</p>
             {slots.map((slot, i) => (
               <div key={i} className="slot-row">
-                <input type="date" value={slot.date} onChange={(e) => setSlots((s) => s.map((x, j) => j === i ? { ...x, date: e.target.value } : x))} />
-                <input placeholder="2:00 PM" value={slot.time} onChange={(e) => setSlots((s) => s.map((x, j) => j === i ? { ...x, time: e.target.value } : x))} />
-                {slots.length > 1 && <button type="button" className="cancel-btn" onClick={() => setSlots((s) => s.filter((_, j) => j !== i))}>✕</button>}
+                <input aria-label={`Slot ${i + 1} date`} type="date" value={slot.date} onChange={(e) => setSlots((s) => s.map((x, j) => j === i ? { ...x, date: e.target.value } : x))} />
+                <input aria-label={`Slot ${i + 1} time`} placeholder="2:00 PM" value={slot.time} onChange={(e) => setSlots((s) => s.map((x, j) => j === i ? { ...x, time: e.target.value } : x))} />
+                {slots.length > 1 && <button type="button" className="cancel-btn" aria-label={`Remove slot ${i + 1}`} onClick={() => setSlots((s) => s.filter((_, j) => j !== i))}>✕</button>}
               </div>
             ))}
             <button type="button" className="add-slot-inline" onClick={() => setSlots((s) => [...s, { ...EMPTY_SLOT }])}>+ Add another slot</button>
 
-            {doctorSuccess && <p className="user-error" style={{ color: '#2a6b4a' }}>{doctorSuccess}</p>}
+            {doctorSuccess && <p className="user-error" role="status" style={{ color: '#154872' }}>{doctorSuccess}</p>}
             <button className="start-session-button" disabled={savingDoctor} type="submit" style={{ marginTop: 16 }}>
               {savingDoctor ? 'Saving…' : 'Save doctor'}
             </button>
@@ -403,7 +408,7 @@ export default function AppointmentsView() {
               <label>Phone<input placeholder="(530) 756-6440" value={facilityForm.phone} onChange={(e) => setFacilityForm((f) => ({ ...f, phone: e.target.value }))} /></label>
               <label style={{ gridColumn: '1 / -1' }}>Hours<input placeholder="ER: 24/7 · Clinics: Mon-Fri 8 AM-5 PM" value={facilityForm.hours} onChange={(e) => setFacilityForm((f) => ({ ...f, hours: e.target.value }))} /></label>
             </div>
-            {facilitySuccess && <p className="user-error" style={{ color: '#2a6b4a' }}>{facilitySuccess}</p>}
+            {facilitySuccess && <p className="user-error" role="status" style={{ color: '#154872' }}>{facilitySuccess}</p>}
             <button className="start-session-button" disabled={savingFacility} type="submit" style={{ marginTop: 16 }}>
               {savingFacility ? 'Saving…' : 'Save facility'}
             </button>

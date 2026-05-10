@@ -19,15 +19,24 @@ function detectLanguageBadge(text) {
   return 'AUTO';
 }
 
-const MicSvg = () => (
-  <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-  </svg>
-);
-
 const CamSvg = () => (
-  <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+  <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden>
+    <circle
+      cx="32"
+      cy="32"
+      fill="none"
+      r="24"
+      stroke="currentColor"
+      strokeDasharray="18 7"
+      strokeWidth="12"
+      transform="rotate(-8 32 32)"
+    />
+    <circle cx="32" cy="32" fill="#fffefb" r="17" />
+    <circle cx="32" cy="32" fill="#f0f2f4" r="14" />
+    <circle cx="32" cy="32" fill="#3d4248" r="10" />
+    <circle cx="32" cy="32" fill="#24282d" r="7" />
+    <circle cx="26" cy="25" fill="#cfd5dc" r="4" />
+    <circle cx="39" cy="38" fill="#ffffff" r="2.2" />
   </svg>
 );
 
@@ -80,7 +89,7 @@ export default function PatientView() {
         setSessionStatus(
           languagePreference === 'sign_language'
             ? 'ASL mode is live. Turn on the camera and sign after each question.'
-            : `${modes.find((item) => item.id === message.mode)?.label || 'VoiceBridge'} mode is live.`,
+            : `${modes.find((item) => item.id === message.mode)?.label || 'CowmunityCare'} mode is live.`,
         );
       }
       if (message.status === 'ready') setSessionStatus('');
@@ -133,7 +142,7 @@ export default function PatientView() {
     if (message.role === 'model') {
       setSignedResponsePending(false);
       if (languagePreference === 'sign_language') {
-        setSessionStatus('Sign your response now. VoiceBridge will interpret automatically.');
+        setSessionStatus('Sign your response now. CowmunityCare will interpret automatically.');
       }
       setLanguageBadge((current) => current === 'AUTO' ? detectLanguageBadge(message.text) : current);
     }
@@ -142,7 +151,7 @@ export default function PatientView() {
   const { connected, lastMessage, error: socketError, send } = useSocket('/ws/patient', {
     onMessage: handleSocketMessage,
   });
-  const { recording, audioLevel, isPlaying, error: audioError, toggleRecording, stopRecording } = useAudio({
+  const { isPlaying, error: audioError, toggleRecording, stopRecording } = useAudio({
     send,
     incomingMessage: lastMessage,
   });
@@ -200,7 +209,7 @@ export default function PatientView() {
 
     if (!user) {
       if (isReturning) {
-        if (!userId.trim()) { setUserError('Enter your VoiceBridge ID.'); return; }
+        if (!userId.trim()) { setUserError('Enter your CowmunityCare ID.'); return; }
         try {
           const res = await fetch(`http://${window.location.hostname}:3001/users/${userId.trim().toUpperCase()}`);
           if (!res.ok) { setUserError('ID not found. Check your ID or register as a new patient.'); return; }
@@ -216,7 +225,7 @@ export default function PatientView() {
           });
           const data = await res.json();
           user = data.user;
-          if (data.isNew) setSessionStatus(`Welcome! Your VoiceBridge ID is ${user.userId}`);
+          if (data.isNew) setSessionStatus(`Welcome! Your CowmunityCare ID is ${user.userId}`);
         } catch { setUserError('Could not register. Continuing as guest.'); }
       }
     }
@@ -232,13 +241,13 @@ export default function PatientView() {
       : langPref === 'sign_language' ? 'ASL'
       : langPref.slice(0, 2).toUpperCase(),
     );
-    if (!sessionStatus.startsWith('Welcome')) setSessionStatus('Connecting to VoiceBridge...');
+    if (!sessionStatus.startsWith('Welcome')) setSessionStatus('Connecting to CowmunityCare...');
     send({ type: 'start_session', mode, languagePreference: langPref, user });
   }
 
-  async function startWithMic() {
+  async function startWithSpeech() {
     setLanguagePreference('auto');
-    pendingAutoStartRef.current = 'mic';
+    pendingAutoStartRef.current = 'speech';
     await startSession('auto');
   }
 
@@ -257,11 +266,6 @@ export default function PatientView() {
     window.location.reload();
   }
 
-  function startNewIntake() {
-    stopRecording();
-    window.location.reload();
-  }
-
   // Auto-redirect to fresh start when session closes naturally
   useEffect(() => {
     if (!sessionEnded) return;
@@ -270,7 +274,7 @@ export default function PatientView() {
     return () => clearTimeout(timer);
   }, [sessionEnded, stopRecording]);
 
-  // Auto-start mic or camera once the session connects
+  // Auto-start speech or camera once the session connects
   useEffect(() => {
     if (!sessionStarted || !pendingAutoStartRef.current) return;
     const type = pendingAutoStartRef.current;
@@ -278,7 +282,7 @@ export default function PatientView() {
     const timer = setTimeout(() => {
       if (!alive || pendingAutoStartRef.current !== type) return;
       pendingAutoStartRef.current = null;
-      if (type === 'mic') toggleRecording();
+      if (type === 'speech') toggleRecording();
       else if (type === 'camera') toggleCamera();
     }, 500);
     return () => {
@@ -340,10 +344,10 @@ export default function PatientView() {
 
   if (sessionEnded) {
     return (
-      <main className="patient-shell">
+      <main className="patient-shell" id="main-content">
         <section className="patient-card session-ended-card">
           <div>
-            <p className="eyebrow">VoiceBridge</p>
+            <p className="eyebrow">CowmunityCare</p>
             <h2>Thank you</h2>
             <p>Your intake is complete. Staff will follow up shortly.</p>
             <p className="session-ended-sub">Returning to home…</p>
@@ -354,18 +358,18 @@ export default function PatientView() {
   }
 
   return (
-    <main className="patient-shell">
-      <section className="patient-card">
+    <main className="patient-shell" id="main-content">
+      <section className={sessionStarted ? 'patient-card session-active' : 'patient-card session-setup'}>
         <header className="patient-header">
           <div className="brand-lockup">
-            <p className="eyebrow">Healthcare AI intake</p>
-            <h1>VoiceBridge</h1>
+            <p className="eyebrow">Accessible Community Intake</p>
+            <h1>CowmunityCare</h1>
             <p className="brand-tagline">
               Multilingual voice intake for clinics, shelters, and community care — speak naturally; staff get a structured
               record.
             </p>
           </div>
-          <div className={connected ? 'connection is-live' : 'connection'}>
+          <div className={connected ? 'connection is-live' : 'connection'} role="status" aria-live="polite">
             <span />
             {connected ? 'Live' : 'Connecting'}
           </div>
@@ -375,30 +379,6 @@ export default function PatientView() {
           <span>{modes.find((item) => item.id === mode)?.label} mode</span>
           <strong>{languageBadge}</strong>
         </div>
-
-        <section className="mode-strip" aria-label="Help type selector">
-          <div>
-            <p className="eyebrow">Help type</p>
-            <div className="mode-tabs">
-              {modes.map((item) => (
-                <button
-                  className={mode === item.id ? 'mode-tab is-selected' : 'mode-tab'}
-                  disabled={sessionStarted}
-                  key={item.id}
-                  type="button"
-                  onClick={() => setMode(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {sessionStarted && (
-            <button className="new-intake-button" type="button" onClick={startNewIntake}>
-              Change mode / new intake
-            </button>
-          )}
-        </section>
 
         {!sessionStarted && (
           <section className="mode-picker">
@@ -411,6 +391,7 @@ export default function PatientView() {
               {modes.map((item) => (
                 <button
                   className={mode === item.id ? 'mode-option is-selected' : 'mode-option'}
+                  aria-pressed={mode === item.id}
                   key={item.id}
                   type="button"
                   onClick={() => setMode(item.id)}
@@ -428,33 +409,41 @@ export default function PatientView() {
                   checked={isReturning}
                   onChange={(e) => { setIsReturning(e.target.checked); setUserError(''); }}
                 />
-                I have a VoiceBridge ID (returning patient)
+                I have a CowmunityCare ID (returning patient)
               </label>
               {isReturning ? (
                 <input
+                  aria-label="CowmunityCare ID"
+                  autoComplete="off"
                   className="user-id-input"
-                  placeholder="VoiceBridge ID — e.g. VB-0001"
+                  placeholder="CowmunityCare ID — e.g. VB-0001"
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                 />
               ) : (
                 <div className="new-user-fields">
-                  <input placeholder="Email address (optional — for confirmation)" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  <input placeholder="Phone number (optional)" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  <input placeholder="Your name (optional)" value={userName} onChange={(e) => setUserName(e.target.value)} />
+                  <input aria-label="Email address, optional for confirmation" autoComplete="email" placeholder="Email address (optional — for confirmation)" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <input aria-label="Phone number, optional" autoComplete="tel" placeholder="Phone number (optional)" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <input aria-label="Your name, optional" autoComplete="name" placeholder="Your name (optional)" value={userName} onChange={(e) => setUserName(e.target.value)} />
                 </div>
               )}
-              {userError && <p className="user-error">{userError}</p>}
+              {userError && <p className="user-error" role="alert">{userError}</p>}
             </div>
 
             <div className="input-mode-btns">
               <button
-                className="input-mode-btn is-mic"
+                className="input-mode-btn is-speech"
                 disabled={!connected || sessionLoading}
                 type="button"
-                onClick={startWithMic}
+                onClick={startWithSpeech}
               >
-                <MicSvg />
+                <span className="voice-mark" aria-hidden>
+                  <span className="voice-wave">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </span>
                 <span>Speech</span>
                 <small>Tap to start listening</small>
               </button>
@@ -470,78 +459,60 @@ export default function PatientView() {
               </button>
             </div>
 
+            <p className="setup-helper-text">
+              Pick a help type, then choose Speech or ASL / Sign Language.
+            </p>
+
             {sessionLoading && (
               <div className="session-loading">
                 <div className="spinner" aria-hidden />
-                Connecting to VoiceBridge…
+                Connecting to CowmunityCare…
               </div>
             )}
             {sessionStatus && !sessionLoading && (
-              <p className="session-status">{sessionStatus}</p>
+              <p className="session-status" role="status" aria-live="polite">{sessionStatus}</p>
             )}
           </section>
         )}
 
-        <div className="conversation" aria-live="polite">
-          {sessionLoading ? (
-            <div className="welcome-bubble">
-              <div className="session-loading">
-                <div className="spinner" aria-hidden />
-                Connecting to VoiceBridge…
+        {sessionStarted && (
+          <div className="conversation" aria-live="polite" aria-label="Conversation transcript">
+            {sessionLoading ? (
+              <div className="welcome-bubble">
+                <div className="session-loading">
+                  <div className="spinner" aria-hidden />
+                  Connecting to CowmunityCare…
+                </div>
               </div>
-            </div>
-          ) : conversation.length === 0 ? (
-            <div className="welcome-bubble">
-              {sessionStarted && languagePreference === 'sign_language'
-                ? 'Turn on the camera and sign after each question. VoiceBridge will interpret automatically.'
-                : sessionStarted
-                  ? "You're connected — the mic is active. Speak naturally."
-                  : 'Pick a help type, then tap the mic to speak or the camera for sign language.'}
-            </div>
-          ) : (
-            conversation.map((message) => (
-              <div
-                className={message.role === 'user' ? 'bubble patient-bubble' : 'bubble ai-bubble'}
-                key={message.id}
-              >
-                {message.text}
+            ) : conversation.length === 0 ? (
+              <div className="welcome-bubble">
+                {sessionStarted && languagePreference === 'sign_language'
+                  ? 'Turn on the camera and sign after each question. CowmunityCare will interpret automatically.'
+                  : sessionStarted
+                    ? "You're connected — speech input is active. Speak naturally."
+                    : 'Pick a help type, then choose Speech or ASL / Sign Language.'}
               </div>
-            ))
-          )}
-        </div>
-
-        {(socketError || audioError) && (
-          <p className="inline-error">{socketError || audioError}</p>
+            ) : (
+              conversation.map((message) => (
+                <div
+                  className={message.role === 'user' ? 'bubble patient-bubble' : 'bubble ai-bubble'}
+                  key={message.id}
+                >
+                  {message.text}
+                </div>
+              ))
+            )}
+          </div>
         )}
 
-        <div className="patient-controls">
-          <button
-            className={recording ? 'mic-button is-recording' : 'mic-button'}
-            disabled={!connected || !sessionStarted}
-            type="button"
-            onClick={toggleRecording}
-          >
-            {recording && (
-              <>
-                <div
-                  aria-hidden
-                  className="mic-ring"
-                  style={{ inset: `${-6 - audioLevel * 20}px`, opacity: 0.45 + audioLevel * 0.3 }}
-                />
-                <div
-                  aria-hidden
-                  className="mic-ring"
-                  style={{ inset: `${-16 - audioLevel * 34}px`, opacity: 0.2 + audioLevel * 0.15 }}
-                />
-              </>
-            )}
-            <span className="mic-core" style={{ transform: `scale(${1 + audioLevel * 0.18})` }} />
-            {recording ? 'Listening' : 'Mic'}
-          </button>
+        {(socketError || audioError) && (
+          <p className="inline-error" role="alert">{socketError || audioError}</p>
+        )}
 
-          {sessionStarted && (
+        {sessionStarted && (
+          <div className="patient-controls">
             <div className="session-side-controls">
-              <button className="camera-button" type="button" onClick={toggleCamera}>
+              <button className="camera-button" type="button" aria-pressed={cameraOn} onClick={toggleCamera}>
                 {cameraOn ? 'Stop camera' : 'Camera'}
               </button>
               <button className="hangup-button" type="button" onClick={hangUp}>
@@ -549,10 +520,10 @@ export default function PatientView() {
                 Hang up
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="ai-indicator">
+        <div className="ai-indicator" role="status" aria-live="polite">
           {isPlaying && (
             <>
               <span className="speaking-dots" aria-hidden>
@@ -560,12 +531,12 @@ export default function PatientView() {
                 <span className="speaking-dot" />
                 <span className="speaking-dot" />
               </span>
-              VoiceBridge is speaking
+              CowmunityCare is speaking
             </>
           )}
         </div>
 
-        <video className={cameraOn ? 'camera-preview is-visible' : 'camera-preview'} ref={videoRef} muted playsInline />
+        <video aria-label="Camera preview" className={cameraOn ? 'camera-preview is-visible' : 'camera-preview'} ref={videoRef} muted playsInline />
         <canvas ref={canvasRef} hidden />
       </section>
     </main>
