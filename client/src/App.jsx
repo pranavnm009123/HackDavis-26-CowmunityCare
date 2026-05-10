@@ -1890,32 +1890,77 @@ dd {
   .nav-map { height: 360px; }
 }
 
-/* ===== embedded NavigatePanel inside PatientView drawer ===== */
-.patient-navigate-backdrop {
-  position: fixed; inset: 0; background: rgba(10, 16, 32, 0.45); z-index: 90; backdrop-filter: blur(2px);
-  animation: nav-fade-in 0.18s ease-out;
+/* ===== 50/50 inline navigate split inside PatientView ===== */
+.patient-main-layout {
+  display: flex;
+  width: min(100%, 1440px);
+  align-items: flex-start;
 }
-.patient-navigate-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw);
-  background: #fff; z-index: 91; display: flex; flex-direction: column;
-  box-shadow: -8px 0 32px rgba(10, 16, 32, 0.25);
-  animation: nav-slide-in 0.22s ease-out;
+
+.patient-main-layout .patient-card {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.patient-main-layout.with-navigate .patient-card {
+  flex: 0 0 50%;
+  width: 50%;
+}
+
+.patient-navigate-panel {
+  flex: 0 0 50%;
+  width: 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-left: 1px solid var(--aggie-border);
+  min-height: calc(100vh - 60px);
   overflow-y: auto;
+  animation: nav-slide-in 0.22s ease-out;
 }
-.patient-navigate-drawer .nav-panel { max-height: none; border-right: none; border-bottom: 1px solid #e6e9ef; padding-top: 48px; }
-.patient-navigate-drawer .nav-map-wrap { min-height: 320px; }
-.patient-navigate-drawer .nav-map { height: 320px; }
-.patient-navigate-drawer .nav-close {
-  position: absolute; top: 12px; right: 14px; z-index: 5;
+
+.patient-navigate-panel .nav-panel {
+  max-height: none;
+  border-right: none;
+  border-bottom: 1px solid #e6e9ef;
+  padding-top: 14px;
+}
+
+.patient-navigate-panel .nav-map-wrap {
+  flex: 1;
+  min-height: 300px;
+  position: relative;
+}
+
+.patient-navigate-panel .nav-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+.patient-navigate-panel .nav-close {
+  position: sticky;
+  top: 12px;
+  float: right;
+  margin: 12px 14px -44px auto;
   width: 32px; height: 32px; border-radius: 16px; border: none; background: #f0f3f9;
-  font-size: 1.4rem; line-height: 1; color: #1a2440; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; line-height: 1; color: #1a2440; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; z-index: 5;
 }
-.patient-navigate-drawer .nav-close:hover { background: #e0e6f0; }
-@keyframes nav-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes nav-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@media (max-width: 560px) {
-  .patient-navigate-drawer { width: 100vw; }
-  .patient-navigate-drawer .nav-map { height: 240px; }
+
+.patient-navigate-panel .nav-close:hover { background: #e0e6f0; }
+
+@keyframes nav-slide-in { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+@media (max-width: 860px) {
+  .patient-main-layout.with-navigate { flex-direction: column; }
+  .patient-main-layout.with-navigate .patient-card { flex: none; width: 100%; }
+  .patient-navigate-panel { flex: none; width: 100%; min-height: 520px; border-left: none; border-top: 1px solid var(--aggie-border); }
+  .patient-navigate-panel .nav-map { position: static; height: 280px; }
+  .patient-navigate-panel .nav-map-wrap { min-height: 280px; }
 }
 `;
 

@@ -556,6 +556,7 @@ export default function PatientView() {
           )}
         </div>
       </nav>
+      <div className={navigateRequest ? 'patient-main-layout with-navigate' : 'patient-main-layout'}>
       <section className={sessionStarted ? 'patient-card session-active' : 'patient-card session-setup'}>
         <header className="patient-header">
           <div className="brand-lockup">
@@ -750,18 +751,16 @@ export default function PatientView() {
         <canvas ref={canvasRef} hidden />
       </section>
       {navigateRequest && (
-        <>
-          <div className="patient-navigate-backdrop" onClick={() => setNavigateRequest(null)} />
-          <aside className="patient-navigate-drawer" role="dialog" aria-label="Find a place">
-            <NavigatePanel
-              key={navigateRequest.at}
-              initialQuery={navigateRequest.query}
-              embedded
-              onClose={() => setNavigateRequest(null)}
-            />
-          </aside>
-        </>
+        <aside className="patient-navigate-panel" role="complementary" aria-label="Find a place">
+          <NavigatePanel
+            key={navigateRequest.at}
+            initialQuery={navigateRequest.query}
+            embedded
+            onClose={() => setNavigateRequest(null)}
+          />
+        </aside>
       )}
+      </div>
     </main>
   );
 }
