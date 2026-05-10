@@ -19,15 +19,17 @@ const styles = `
   --aggie-muted: #4d6b82;
   --aggie-danger: #be2020;
   --aggie-warning: #b85412;
+  --app-font: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
   color: var(--aggie-blue);
   background: var(--aggie-blue-soft);
-  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  font-family: var(--app-font);
   font-synthesis: none;
   text-rendering: geometricPrecision;
 }
 
 * {
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 body {
@@ -40,9 +42,20 @@ body {
     linear-gradient(135deg, #faf8f3 0%, var(--aggie-blue-soft) 48%, #f5efe4 100%);
 }
 
-button {
+button,
+input,
+select,
+textarea {
   border: 0;
   font: inherit;
+}
+
+body,
+table,
+svg text,
+.recharts-wrapper,
+.recharts-wrapper * {
+  font-family: var(--app-font);
 }
 
 button:focus-visible,
@@ -204,9 +217,9 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 10px 0;
   border-radius: 999px;
-  background: var(--aggie-blue-soft);
+  background: transparent;
   color: var(--aggie-muted);
   font-size: 0.9rem;
   font-weight: 800;
@@ -220,7 +233,7 @@ h2 {
 }
 
 .connection.is-live {
-  background: #e0edf7;
+  background: transparent;
   color: var(--aggie-blue);
 }
 
@@ -945,13 +958,14 @@ dd {
 }
 
 .input-mode-btn.is-camera {
-  background: var(--aggie-gold);
-  color: var(--aggie-blue);
-  box-shadow: 0 8px 22px rgba(245, 194, 66, 0.3);
+  background: var(--aggie-blue);
+  color: #ffffff;
+  box-shadow: 0 8px 22px rgba(13, 39, 78, 0.24);
 }
 
 .input-mode-btn.is-camera:hover:not(:disabled) {
-  box-shadow: 0 14px 32px rgba(245, 194, 66, 0.4);
+  background: var(--aggie-blue);
+  box-shadow: 0 14px 32px rgba(13, 39, 78, 0.32);
 }
 
 .setup-helper-text {

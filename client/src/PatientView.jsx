@@ -3,41 +3,42 @@ import { useAudio } from './useAudio.js';
 import { useSocket } from './useSocket.js';
 
 const modes = [
-  { id: 'clinic', label: 'Free Clinic', description: 'Symptoms, duration, urgency, accessibility, insurance, next step.' },
-  { id: 'shelter', label: 'Shelter', description: 'Housing status, safety, family size, pets, mobility, bed/resource need.' },
-  { id: 'food_aid', label: 'Food Aid', description: 'Household size, diet needs, transport limits, zip code, supplies.' },
-  { id: 'support_services', label: 'Access & Support', description: 'Find care, shelter, or services you can actually reach — matched to your language, mobility, and transport needs.' },
+  { id: 'clinic', label: 'Healthcare', description: 'Symptoms, duration, urgency, accessibility, insurance, next step.' },
+  { id: 'shelter', label: 'Housing', description: 'Housing status, safety, family size, pets, mobility, bed/resource need.' },
+  { id: 'food_aid', label: 'Hunger', description: 'Household size, diet needs, transport limits, zip code, supplies.' },
+  { id: 'support_services', label: 'Here-to-Help', description: 'Find services you can actually reach — matched to your language, mobility, and transport needs.' },
 ];
 
 const TRANSCRIPT_MERGE_WINDOW_MS = 2200;
 const ASL_AUTO_INTERPRET_DELAY_MS = 7000;
 
-function detectLanguageBadge(text) {
-  const normalized = text.toLowerCase();
-  if (/[¿¡ñáéíóú]/.test(normalized) || /\b(hola|gracias|dolor|tiene|puede)\b/.test(normalized)) return 'ES';
-  if (/\b(bonjour|merci|douleur|vous)\b/.test(normalized)) return 'FR';
-  if (/\b(你好|谢谢|疼|痛)\b/.test(normalized)) return 'ZH';
-  return 'AUTO';
-}
-
 const CamSvg = () => (
-  <svg width="54" height="54" viewBox="0 0 64 64" aria-hidden>
-    <circle
-      cx="32"
-      cy="32"
-      fill="none"
-      r="24"
-      stroke="currentColor"
-      strokeDasharray="18 7"
-      strokeWidth="12"
-      transform="rotate(-8 32 32)"
+  <svg width="58" height="46" viewBox="0 0 110 86" aria-hidden>
+    <path
+      d="M16 60V24c0-6 4-10 10-10h28l4-10h23l4 10h11c6 0 10 4 10 10v36"
+      fill="#fffefb"
+      stroke="#0d274e"
+      strokeLinejoin="round"
+      strokeWidth="4"
     />
-    <circle cx="32" cy="32" fill="#fffefb" r="17" />
-    <circle cx="32" cy="32" fill="#f0f2f4" r="14" />
-    <circle cx="32" cy="32" fill="#3d4248" r="10" />
-    <circle cx="32" cy="32" fill="#24282d" r="7" />
-    <circle cx="26" cy="25" fill="#cfd5dc" r="4" />
-    <circle cx="39" cy="38" fill="#ffffff" r="2.2" />
+    <rect x="26" y="24" width="14" height="7" rx="2" fill="none" stroke="#0d274e" strokeWidth="3" />
+    <circle cx="70" cy="41" r="20" fill="#fffefb" stroke="#0d274e" strokeWidth="4" />
+    <circle cx="70" cy="41" r="12" fill="#0d274e" />
+    <circle cx="77" cy="35" r="5" fill="#fffefb" />
+    <path
+      d="M6 66c17-8 34-9 52 0 18 10 34 8 50-4"
+      fill="none"
+      stroke="#0d274e"
+      strokeLinecap="round"
+      strokeWidth="4"
+    />
+    <path
+      d="M6 66c18-4 33-2 51 7 15 7 30 6 45-2"
+      fill="none"
+      stroke="#0d274e"
+      strokeLinecap="round"
+      strokeWidth="3"
+    />
   </svg>
 );
 
@@ -49,7 +50,6 @@ const HangUpSvg = () => (
 
 export default function PatientView() {
   const [conversation, setConversation] = useState([]);
-  const [languageBadge, setLanguageBadge] = useState('AUTO');
   const [mode, setMode] = useState('clinic');
   const [languagePreference, setLanguagePreference] = useState('auto');
   const [sessionStarted, setSessionStarted] = useState(false);
@@ -145,7 +145,6 @@ export default function PatientView() {
       if (languagePreference === 'sign_language') {
         setSessionStatus('Sign your response now. CowmunityCare will interpret automatically.');
       }
-      setLanguageBadge((current) => current === 'AUTO' ? detectLanguageBadge(message.text) : current);
     }
   }, [languagePreference]);
 
@@ -237,11 +236,6 @@ export default function PatientView() {
     setSignedResponsePending(false);
     signedResponseCountRef.current = 0;
     window.clearTimeout(aslAutoTimerRef.current);
-    setLanguageBadge(
-      langPref === 'auto' ? 'AUTO'
-      : langPref === 'sign_language' ? 'ASL'
-      : langPref.slice(0, 2).toUpperCase(),
-    );
     if (!sessionStatus.startsWith('Welcome')) setSessionStatus('Connecting to CowmunityCare...');
     send({ type: 'start_session', mode, languagePreference: langPref, user });
   }
@@ -366,8 +360,7 @@ export default function PatientView() {
             <p className="eyebrow">Accessible Community Intake</p>
             <h1>CowmunityCare</h1>
             <p className="brand-tagline">
-              Multilingual voice intake for clinics, shelters, and community care — speak naturally; staff get a structured
-              record.
+              Accessible intake for healthcare, housing, hunger, and everyday help — speak, sign, or share what you need.
             </p>
           </div>
           <div className={connected ? 'connection is-live' : 'connection'} role="status" aria-live="polite">
@@ -378,14 +371,13 @@ export default function PatientView() {
 
         <div className="language-strip">
           <span>{modes.find((item) => item.id === mode)?.label} mode</span>
-          <strong>{languageBadge}</strong>
         </div>
 
         {!sessionStarted && (
           <section className="mode-picker">
             <div>
               <p className="eyebrow">Choose help type</p>
-              <h2>Speak in your own language. Staff receive a structured case record.</h2>
+              <h2>Say it, sign it, share it — Care starts with being understood.</h2>
             </div>
 
             <div className="mode-grid">
@@ -446,7 +438,7 @@ export default function PatientView() {
                   </span>
                 </span>
                 <span>Speech</span>
-                <small>Tap to start listening</small>
+                <small>Tap to start talking</small>
               </button>
               <button
                 className="input-mode-btn is-camera"
@@ -456,7 +448,7 @@ export default function PatientView() {
               >
                 <CamSvg />
                 <span>ASL / Sign Language</span>
-                <small>Camera input</small>
+                <small>Video input</small>
               </button>
             </div>
 

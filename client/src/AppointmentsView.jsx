@@ -14,10 +14,10 @@ const SPEC_LABELS = {
 };
 const FACILITY_TYPE_LABELS = {
   hospital: 'Hospital',
-  free_clinic: 'Free Clinic',
+  free_clinic: 'Healthcare',
   urgent_care: 'Urgent Care',
-  shelter: 'Shelter',
-  food_bank: 'Food Bank',
+  shelter: 'Housing',
+  food_bank: 'Hunger',
   pharmacy: 'Pharmacy',
 };
 const FACILITY_TYPE_COLORS = {
