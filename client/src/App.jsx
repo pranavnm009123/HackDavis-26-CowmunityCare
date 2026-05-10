@@ -424,16 +424,25 @@ h2 {
 .new-intake-button {
   padding: 10px 12px;
   border-radius: 999px;
-  background: var(--aggie-blue-soft);
-  color: var(--aggie-blue);
+  background: var(--aggie-blue);
+  color: #fff;
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 900;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-tab:hover,
+.mode-tab:focus-visible,
+.new-intake-button:hover,
+.new-intake-button:focus-visible {
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
 }
 
 .mode-tab.is-selected {
-  background: var(--aggie-blue);
-  color: #ffffff;
+  background: var(--aggie-gold);
+  color: var(--aggie-blue);
 }
 
 .mode-tab:disabled {
@@ -847,17 +856,28 @@ dd {
 .staff-tab {
   padding: 9px 18px;
   border-radius: 999px;
-  background: var(--aggie-blue-soft);
-  color: var(--aggie-blue);
+  background: var(--aggie-blue);
+  color: #fff;
   cursor: pointer;
   font: inherit;
   font-size: 0.88rem;
   font-weight: 900;
   text-decoration: none;
   border: 0;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
-.staff-tab.active { background: var(--aggie-blue); color: #fff; }
+.staff-tab:hover,
+.staff-tab:focus-visible {
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
+}
+
+.staff-tab.active {
+  background: var(--aggie-gold);
+  color: var(--aggie-blue);
+  box-shadow: inset 0 0 0 1px rgba(13, 39, 78, 0.1);
+}
 
 /* ── Category tabs (clinic / shelter / food) ─────────────── */
 .category-tabs {
@@ -873,14 +893,14 @@ dd {
   gap: 8px;
   padding: 10px 18px;
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: 2px solid var(--aggie-blue);
   cursor: pointer;
   font: inherit;
   font-size: 0.88rem;
   font-weight: 900;
-  background: var(--aggie-blue-soft);
-  color: var(--aggie-blue);
-  transition: background 0.15s, color 0.15s;
+  background: var(--aggie-blue);
+  color: #fff;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .cat-count {
@@ -889,21 +909,29 @@ dd {
   border-radius: 99px;
   font-size: 0.74rem;
   font-weight: 800;
-  background: rgba(13, 39, 78, 0.1);
+  background: rgba(255, 255, 255, 0.2);
   color: inherit;
 }
 
-.category-tab.cat-clinic { border-color: rgba(13, 39, 78, 0.18); }
-.category-tab.cat-shelter { border-color: rgba(245, 194, 66, 0.48); }
-.category-tab.cat-food_aid { border-color: rgba(13, 39, 78, 0.18); }
-.category-tab.cat-support_services { border-color: rgba(21, 72, 114, 0.3); }
+.category-tab:hover,
+.category-tab:focus-visible {
+  background: var(--aggie-gold-soft);
+  border-color: var(--aggie-gold);
+  color: var(--aggie-blue);
+}
 
-.category-tab.cat-all.active,
-.category-tab.cat-clinic.active,
-.category-tab.cat-food_aid.active,
-.category-tab.cat-support_services.active { background: var(--aggie-blue); color: #fff; }
-.category-tab.cat-shelter.active { background: var(--aggie-gold); color: var(--aggie-blue); }
-.category-tab.active .cat-count { background: rgba(255,255,255,0.22); }
+.category-tab:hover .cat-count,
+.category-tab:focus-visible .cat-count {
+  background: rgba(13, 39, 78, 0.1);
+}
+
+.category-tab.active {
+  background: var(--aggie-gold);
+  border-color: var(--aggie-gold);
+  color: var(--aggie-blue);
+}
+
+.category-tab.active .cat-count { background: rgba(13, 39, 78, 0.1); }
 
 /* ── 3-col filter bar (no mode dropdown) ─────────────────── */
 .filter-bar-3col {
@@ -933,16 +961,23 @@ dd {
 .view-toggle button {
   padding: 8px 14px;
   border-radius: 12px;
-  background: var(--aggie-blue-soft);
-  color: var(--aggie-blue);
+  background: var(--aggie-blue);
+  color: #fff;
   cursor: pointer;
   font: inherit;
   font-size: 0.88rem;
   font-weight: 900;
   border: 0;
+  transition: background 0.15s, color 0.15s;
 }
 
-.view-toggle button.is-active { background: var(--aggie-blue); color: #fff; }
+.view-toggle button:hover,
+.view-toggle button:focus-visible {
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
+}
+
+.view-toggle button.is-active { background: var(--aggie-gold); color: var(--aggie-blue); }
 
 /* ── List view ───────────────────────────────────────────── */
 .cards-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1170,20 +1205,27 @@ dd {
 .date-tab {
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1.5px solid var(--aggie-border);
-  background: rgba(255, 253, 248, 0.85);
-  color: var(--aggie-muted);
+  border: 1.5px solid var(--aggie-blue);
+  background: var(--aggie-blue);
+  color: #fff;
   font: inherit;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
+.date-tab:hover,
+.date-tab:focus-visible {
+  background: var(--aggie-gold-soft);
+  border-color: var(--aggie-gold);
+  color: var(--aggie-blue);
+}
+
 .date-tab.active {
-  background: var(--aggie-blue);
-  color: #fff;
-  border-color: var(--aggie-blue);
+  background: var(--aggie-gold);
+  color: var(--aggie-blue);
+  border-color: var(--aggie-gold);
 }
 
 .analytics-summary-row {
@@ -1410,12 +1452,21 @@ dd {
 .appt-page-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .appt-page-tab {
   padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 0.88rem;
-  font-weight: 600; background: var(--aggie-blue-soft); color: var(--aggie-blue); border: none;
+  font-weight: 900; background: var(--aggie-blue); color: #fff; border: none;
   display: flex; align-items: center; gap: 6px;
+  transition: background 0.15s, color 0.15s;
 }
-.appt-page-tab.active { background: var(--aggie-blue); color: #fff; }
+.appt-page-tab:hover,
+.appt-page-tab:focus-visible {
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
+}
+.appt-page-tab.active { background: var(--aggie-gold); color: var(--aggie-blue); }
 .appt-count { background: rgba(255,255,255,0.25); border-radius: 99px; padding: 1px 7px; font-size: 0.75rem; }
-.appt-page-tab:not(.active) .appt-count { background: rgba(13, 39, 78, 0.12); }
+.appt-page-tab:not(.active) .appt-count { background: rgba(255,255,255,0.2); }
+.appt-page-tab:hover .appt-count,
+.appt-page-tab:focus-visible .appt-count,
+.appt-page-tab.active .appt-count { background: rgba(13, 39, 78, 0.1); }
 
 .doctor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
 .doctor-card { background: rgba(13, 39, 78, 0.04); border: 1px solid var(--aggie-border); border-radius: 14px; padding: 16px; }
