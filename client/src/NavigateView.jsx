@@ -1,9 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from './useAuth.jsx';
 import NavigatePanel from './NavigatePanel.jsx';
 
 export default function NavigateView() {
   const { user, isLoggedIn } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
 
   return (
     <div className="nav-shell">
@@ -23,7 +25,7 @@ export default function NavigateView() {
       </header>
 
       <main className="nav-main">
-        <NavigatePanel />
+        <NavigatePanel initialQuery={initialQuery} />
       </main>
     </div>
   );

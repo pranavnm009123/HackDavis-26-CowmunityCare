@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAudio } from './useAudio.js';
 import { useSocket } from './useSocket.js';
 import { useAuth } from './useAuth.jsx';
-import NavigatePanel from './NavigatePanel.jsx';
 
 const DRAFT_FIELDS = {
   clinic: [
@@ -217,7 +216,6 @@ export default function PatientView() {
   const [sessionEnded, setSessionEnded] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [signedResponsePending, setSignedResponsePending] = useState(false);
-  const [navigateRequest, setNavigateRequest] = useState(null);
   const [showEnglish, setShowEnglish] = useState(false);
   const [translations, setTranslations] = useState({});
 
@@ -245,7 +243,8 @@ export default function PatientView() {
 
   const handleSocketMessage = useCallback((message) => {
     if (message.type === 'NAVIGATE_REQUEST') {
-      setNavigateRequest({ query: message.query || '', reason: message.reason || '', at: Date.now() });
+      const q = encodeURIComponent(message.query || '');
+      window.open(`/navigate${q ? `?q=${q}` : ''}`, '_blank', 'noopener');
       return;
     }
     if (message.type === 'session') {
@@ -556,7 +555,6 @@ export default function PatientView() {
           )}
         </div>
       </nav>
-      <div className={navigateRequest ? 'patient-main-layout with-navigate' : 'patient-main-layout'}>
       <section className={sessionStarted ? 'patient-card session-active' : 'patient-card session-setup'}>
         <header className="patient-header">
           <div className="brand-lockup">
@@ -750,17 +748,6 @@ export default function PatientView() {
         <video aria-label="Camera preview" className={cameraOn ? 'camera-preview is-visible' : 'camera-preview'} ref={videoRef} muted playsInline />
         <canvas ref={canvasRef} hidden />
       </section>
-      {navigateRequest && (
-        <aside className="patient-navigate-panel" role="complementary" aria-label="Find a place">
-          <NavigatePanel
-            key={navigateRequest.at}
-            initialQuery={navigateRequest.query}
-            embedded
-            onClose={() => setNavigateRequest(null)}
-          />
-        </aside>
-      )}
-      </div>
     </main>
   );
 }
