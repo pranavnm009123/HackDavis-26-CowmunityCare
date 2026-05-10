@@ -206,6 +206,19 @@ const HangUpSvg = () => (
   </svg>
 );
 
+const TextSvg = () => (
+  <svg width="38" height="34" viewBox="0 0 48 40" aria-hidden>
+    <path
+      d="M8 6h32a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H19l-9 6v-6H8a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4z"
+      fill="none"
+      stroke="#0d274e"
+      strokeLinejoin="round"
+      strokeWidth="3"
+    />
+    <path d="M13 15h22M13 22h15" stroke="#0d274e" strokeLinecap="round" strokeWidth="3" />
+  </svg>
+);
+
 export default function PatientView() {
   const [conversation, setConversation] = useState([]);
   const [mode, setMode] = useState('');
@@ -215,6 +228,8 @@ export default function PatientView() {
   const [sessionStatus, setSessionStatus] = useState('');
   const [sessionEnded, setSessionEnded] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
+  const [selectedInputMode, setSelectedInputMode] = useState('');
+  const [textInput, setTextInput] = useState('');
   const [signedResponsePending, setSignedResponsePending] = useState(false);
   const [showEnglish, setShowEnglish] = useState(false);
   const [translations, setTranslations] = useState({});
@@ -382,8 +397,9 @@ export default function PatientView() {
   function startSession(langPref = languagePreference) {
     if (!mode) {
       pendingAutoStartRef.current = null;
+      setSelectedInputMode('');
       setSessionStatus('Choose a help type first.');
-      return;
+      return false;
     }
     setConversation([]);
     setSessionLoading(true);
@@ -392,18 +408,37 @@ export default function PatientView() {
     window.clearTimeout(aslAutoTimerRef.current);
     setSessionStatus('Connecting to CowmunityCare...');
     send({ type: 'start_session', mode, languagePreference: langPref, token: token || null });
+    return true;
   }
 
-  async function startWithSpeech() {
+  function startWithSpeech() {
     setLanguagePreference('auto');
+    setSelectedInputMode('speech');
     pendingAutoStartRef.current = 'speech';
-    await startSession('auto');
+    startSession('auto');
   }
 
-  async function startWithCamera() {
+  function startWithCamera() {
     setLanguagePreference('sign_language');
+    setSelectedInputMode('camera');
     pendingAutoStartRef.current = 'camera';
-    await startSession('sign_language');
+    startSession('sign_language');
+  }
+
+  function startWithText() {
+    setLanguagePreference('auto');
+    setSelectedInputMode('text');
+    pendingAutoStartRef.current = null;
+    startSession('auto');
+  }
+
+  function sendTextMessage(e) {
+    e.preventDefault();
+    const text = textInput.trim();
+    if (!text) return;
+    addConversationBubble('user', text);
+    send({ type: 'text', text });
+    setTextInput('');
   }
 
   function hangUp() {
@@ -554,28 +589,27 @@ export default function PatientView() {
 
   return (
     <main className="patient-shell" id="main-content">
-      <nav className="patient-topnav">
-        <Link className="patient-topnav-brand" to="/">CowmunityCare</Link>
-        <div className="patient-topnav-actions">
-          <Link className="patient-topnav-link" to="/navigate">Find a place</Link>
-          {isLoggedIn ? (
-            <>
-              <span className="patient-topnav-user">{authUser?.profile?.name || authUser?.email}</span>
-              <Link className="patient-topnav-link" to="/settings">My Profile</Link>
-              <button className="patient-topnav-link is-danger" type="button" onClick={() => { logout(); navigate('/'); }}>Log out</button>
-            </>
-          ) : (
-            <>
-              <Link className="patient-topnav-link" to="/login">Log in</Link>
-              <Link className="patient-topnav-link is-primary" to="/signup">Sign up</Link>
-            </>
-          )}
-        </div>
-      </nav>
       <section className={sessionStarted ? 'patient-card session-active' : 'patient-card session-setup'}>
         <header className="patient-header">
           <div className="brand-lockup">
-            <p className="eyebrow">Accessible Community Intake</p>
+            <div className="patient-heading-row">
+              <p className="eyebrow">Accessible Community Intake</p>
+              <div className="patient-topnav-actions">
+                <Link className="patient-topnav-link" to="/navigate">Find a place</Link>
+                {isLoggedIn ? (
+                  <>
+                    <span className="patient-topnav-user">{authUser?.profile?.name || authUser?.email}</span>
+                    <Link className="patient-topnav-link" to="/settings">My Profile</Link>
+                    <button className="patient-topnav-link is-danger" type="button" onClick={() => { logout(); navigate('/'); }}>Log out</button>
+                  </>
+                ) : (
+                  <>
+                    <Link className="patient-topnav-link" to="/login">Log in</Link>
+                    <Link className="patient-topnav-link is-primary" to="/signup">Sign up</Link>
+                  </>
+                )}
+              </div>
+            </div>
             <h1>CowmunityCare</h1>
             <p className="brand-tagline">
               Accessible intake for healthcare, housing, hunger, and everyday help — speak, sign, or share what you need.
@@ -609,9 +643,13 @@ export default function PatientView() {
               ))}
             </div>
 
+            <p className="setup-helper-text">
+              Pick a help type, then choose Speech, ASL / Sign Language, or Text.
+            </p>
+
             <div className="input-mode-btns">
               <button
-                className="input-mode-btn is-speech"
+                className={selectedInputMode === 'speech' ? 'input-mode-btn is-speech is-selected' : 'input-mode-btn is-speech'}
                 disabled={!connected || sessionLoading}
                 type="button"
                 onClick={startWithSpeech}
@@ -627,7 +665,7 @@ export default function PatientView() {
                 <small>Tap to start talking</small>
               </button>
               <button
-                className="input-mode-btn is-camera"
+                className={selectedInputMode === 'camera' ? 'input-mode-btn is-camera is-selected' : 'input-mode-btn is-camera'}
                 disabled={!connected || sessionLoading}
                 type="button"
                 onClick={startWithCamera}
@@ -636,11 +674,17 @@ export default function PatientView() {
                 <span>ASL / Sign Language</span>
                 <small>Video input</small>
               </button>
+              <button
+                className={selectedInputMode === 'text' ? 'input-mode-btn is-text is-selected' : 'input-mode-btn is-text'}
+                disabled={!connected || sessionLoading}
+                type="button"
+                onClick={startWithText}
+              >
+                <TextSvg />
+                <span>Text</span>
+                <small>Type your intake</small>
+              </button>
             </div>
-
-            <p className="setup-helper-text">
-              Pick a help type, then choose Speech or ASL / Sign Language.
-            </p>
 
             {sessionLoading && (
               <div className="session-loading">
@@ -688,7 +732,9 @@ export default function PatientView() {
                   <div className="welcome-bubble">
                     {languagePreference === 'sign_language'
                       ? 'Turn on the camera and sign after each question. CowmunityCare will interpret automatically.'
-                      : "You're connected — speech input is active. Speak naturally."}
+                      : selectedInputMode === 'text'
+                        ? "You're connected — type your response below."
+                        : "You're connected — speech input is active. Speak naturally."}
                   </div>
                 ) : (
                   conversation.map((message) => (
@@ -710,6 +756,18 @@ export default function PatientView() {
 
               {(socketError || audioError) && (
                 <p className="inline-error" role="alert">{socketError || audioError}</p>
+              )}
+
+              {selectedInputMode === 'text' && (
+                <form className="text-input-bar" onSubmit={sendTextMessage}>
+                  <input
+                    aria-label="Type your response"
+                    placeholder="Type your response..."
+                    value={textInput}
+                    onChange={(event) => setTextInput(event.target.value)}
+                  />
+                  <button type="submit">Send</button>
+                </form>
               )}
 
               <div className="patient-controls">

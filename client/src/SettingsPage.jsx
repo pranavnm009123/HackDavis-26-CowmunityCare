@@ -137,7 +137,7 @@ export default function SettingsPage() {
     <div className="settings-shell">
       <div className="settings-inner">
         <div className="settings-header">
-          <Link className="settings-back" to="/patient">← Back</Link>
+          <Link className="settings-back" to="/user">← Back</Link>
           <h1>Account settings</h1>
         </div>
 

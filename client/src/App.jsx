@@ -28,6 +28,26 @@ const styles = `
   --urgency-low: #1f6b3a;
   --aggie-danger: var(--urgency-critical);
   --aggie-warning: var(--urgency-high);
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #0f172a;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #9f1d20;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #94a3b8;
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 2px rgba(13, 39, 78, 0.06);
+  --shadow-md: 0 8px 22px rgba(13, 39, 78, 0.08);
   --app-font: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
   color: var(--aggie-blue);
   background: #ffffff;
@@ -151,15 +171,39 @@ select:focus-visible {
   gap: 16px;
 }
 
+.patient-header {
+  position: relative;
+}
+
 .patient-header .connection,
 .staff-header .connection {
   flex-shrink: 0;
   margin-top: 2px;
 }
 
+.patient-header .connection {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 20;
+}
+
 .brand-lockup {
   flex: 1;
   min-width: 0;
+}
+
+.patient-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+  padding-right: 128px;
+}
+
+.patient-heading-row .eyebrow {
+  margin: 0;
 }
 
 .brand-lockup h1 {
@@ -183,6 +227,10 @@ select:focus-visible {
   font-size: clamp(0.92rem, 2.2vw, 1.05rem);
   line-height: 1.45;
   font-weight: 600;
+}
+
+.patient-card.session-setup .patient-header {
+  margin-bottom: 28px;
 }
 
 .staff-header .brand-lockup h1 {
@@ -308,9 +356,10 @@ h2 {
 
 .mode-option:hover,
 .mode-option:focus-visible {
-  border-color: var(--aggie-gold);
-  background: var(--aggie-gold-soft);
+  border-color: var(--aggie-blue);
+  background: var(--secondary);
   color: var(--aggie-blue);
+  box-shadow: inset 0 0 0 1px var(--aggie-blue);
 }
 
 .mode-option:hover span,
@@ -836,6 +885,26 @@ dd {
   font-weight: 800;
 }
 
+.text-input-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.text-input-bar input {
+  width: 100%;
+}
+
+.text-input-bar button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: var(--radius);
+  background: var(--aggie-blue);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
 /* ── Session split screen ─────────────────────────────────── */
 .session-split-body {
   display: flex;
@@ -1233,28 +1302,31 @@ dd {
 .patient-topnav-link.is-danger { background: var(--aggie-danger); color: #fff; border-color: transparent; }
 .patient-topnav-link.is-danger:hover { opacity: 0.85; }
 
-/* ── Input mode buttons (speech / camera) ────────────────── */
+/* ── Input mode buttons (speech / camera / text) ─────────── */
 .input-mode-btns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  margin-top: 14px;
 }
 .input-mode-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  min-height: 136px;
-  padding: 20px 18px;
-  border-radius: 24px;
+  justify-content: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   cursor: pointer;
-  text-align: center;
-  border: none;
-  transition: transform 0.12s, box-shadow 0.12s, background 0.18s;
+  text-align: left;
+  box-shadow: none;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.18s, color 0.18s;
 }
 
 .input-mode-btn span {
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 900;
 }
 
@@ -1262,10 +1334,22 @@ dd {
   font-size: 0.78rem;
   opacity: 0.72;
   font-weight: 600;
+  display: block;
+  margin-top: 3px;
 }
 
 .input-mode-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: none;
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
+  box-shadow: none;
+}
+
+.input-mode-btn.is-selected,
+.input-mode-btn:active:not(:disabled) {
+  background: var(--aggie-gold);
+  color: var(--aggie-blue);
+  box-shadow: none;
 }
 
 .input-mode-btn:disabled {
@@ -1276,14 +1360,21 @@ dd {
 .voice-mark {
   position: relative;
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   overflow: hidden;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: transparent;
+  color: var(--aggie-blue);
   transition: width 0.18s, height 0.18s, background 0.18s, box-shadow 0.18s;
+}
+
+.input-mode-btn:hover:not(:disabled) .voice-mark,
+.input-mode-btn.is-selected .voice-mark,
+.input-mode-btn:active:not(:disabled) .voice-mark {
+  background: transparent;
+  color: var(--aggie-blue);
 }
 
 .voice-wave {
@@ -1303,30 +1394,50 @@ dd {
 .voice-wave span:nth-child(2) { height: 26px; }
 .voice-wave span:nth-child(3) { height: 20px; opacity: 0.82; }
 
+.input-mode-btn svg {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 34px;
+}
+
+.input-mode-btn > span:not(.voice-mark) {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .input-mode-btn.is-speech {
   background: var(--aggie-blue);
   color: #ffffff;
-  box-shadow: 0 8px 22px rgba(13, 39, 78, 0.24);
+  box-shadow: none;
 }
 
-.input-mode-btn.is-speech:hover:not(:disabled) {
-  background: var(--aggie-blue);
-  box-shadow: 0 14px 32px rgba(13, 39, 78, 0.32);
-}
-
-.input-mode-btn.is-camera {
+.input-mode-btn.is-camera,
+.input-mode-btn.is-text {
   background: var(--aggie-blue);
   color: #ffffff;
-  box-shadow: 0 8px 22px rgba(13, 39, 78, 0.24);
+  box-shadow: none;
 }
 
-.input-mode-btn.is-camera:hover:not(:disabled) {
-  background: var(--aggie-blue);
-  box-shadow: 0 14px 32px rgba(13, 39, 78, 0.32);
+.input-mode-btn.is-speech:hover:not(:disabled),
+.input-mode-btn.is-camera:hover:not(:disabled),
+.input-mode-btn.is-text:hover:not(:disabled) {
+  background: var(--aggie-gold-soft);
+  color: var(--aggie-blue);
+}
+
+.input-mode-btn.is-speech.is-selected,
+.input-mode-btn.is-camera.is-selected,
+.input-mode-btn.is-text.is-selected,
+.input-mode-btn.is-speech:active:not(:disabled),
+.input-mode-btn.is-camera:active:not(:disabled),
+.input-mode-btn.is-text:active:not(:disabled) {
+  background: var(--aggie-gold);
+  color: var(--aggie-blue);
 }
 
 .setup-helper-text {
-  margin: 0;
+  margin: 8px 0 0;
   color: var(--aggie-muted);
   font-size: clamp(0.94rem, 1.5vw, 1.08rem);
   font-weight: 600;
@@ -1575,6 +1686,17 @@ dd {
     flex-direction: column;
   }
 
+  .patient-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 0;
+  }
+
+  .patient-heading-row .patient-topnav-actions {
+    width: 100%;
+  }
+
   .intake-grid,
   .cards-grid,
   .filter-bar,
@@ -1622,13 +1744,32 @@ dd {
   }
 
   .input-mode-btn {
-    min-height: 128px;
-    padding: 16px 14px;
+    min-height: 56px;
+    padding: 10px 12px;
   }
 
   .mode-grid,
-  .input-mode-btns {
+  .mode-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .input-mode-btns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .input-mode-btn {
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+  }
+
+  .input-mode-btn small {
+    display: none;
+  }
+
+  .text-input-bar {
+    grid-template-columns: 1fr;
   }
 
   .conversation {
@@ -2018,6 +2159,402 @@ dd {
   .nav-map { height: 360px; }
 }
 
+/* ── shadcn/ui reconstruction layer ──────────────────────── */
+.cc-card,
+.queue-panel,
+.mode-picker,
+.intake-card,
+.intake-card-list,
+.auth-card,
+.settings-section,
+.doctor-card,
+.summary-stat,
+.chart-card,
+.draft-panel,
+.care-circle,
+.nav-dest,
+.nav-route,
+.nav-question,
+.resource-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.queue-panel,
+.mode-picker,
+.auth-card,
+.settings-section,
+.chart-card {
+  box-shadow: var(--shadow-md);
+}
+
+.cc-card-header {
+  display: grid;
+  gap: 6px;
+  padding: 24px 24px 0;
+}
+
+.cc-card-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.cc-card-description {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.cc-card-content {
+  padding: 24px;
+}
+
+.cc-button,
+.staff-tab,
+.category-tab,
+.appt-page-tab,
+.date-tab,
+.mode-tab,
+.new-intake-button,
+.view-toggle button,
+.start-session-button,
+.auth-submit,
+.settings-save,
+.review-button,
+.list-action-btn,
+.camera-button,
+.care-circle-notify,
+.add-slot-btn,
+.barrier-submit,
+.patient-topnav-link,
+.landing-ctas .btn-primary,
+.landing-ctas .btn-ghost,
+.nav-chip,
+.nav-tab,
+.nav-uber-btn,
+.map-banner-btn {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.cc-button:hover:not(:disabled),
+.staff-tab:hover,
+.category-tab:hover,
+.appt-page-tab:hover,
+.date-tab:hover,
+.mode-tab:hover,
+.new-intake-button:hover,
+.view-toggle button:hover,
+.start-session-button:hover:not(:disabled),
+.auth-submit:hover:not(:disabled),
+.settings-save:hover:not(:disabled),
+.review-button:hover:not(:disabled),
+.list-action-btn:hover:not(:disabled),
+.camera-button:hover,
+.care-circle-notify:hover,
+.add-slot-btn:hover,
+.barrier-submit:hover,
+.patient-topnav-link:hover,
+.landing-ctas .btn-primary:hover,
+.landing-ctas .btn-ghost:hover,
+.nav-chip:hover,
+.nav-tab:hover,
+.nav-uber-btn:hover,
+.map-banner-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+  border-color: var(--border);
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.16);
+}
+
+.staff-tab.active,
+.category-tab.active,
+.appt-page-tab.active,
+.date-tab.is-selected,
+.mode-tab.is-selected,
+.view-toggle button.is-active,
+.auth-tab.active,
+.nav-tab-active,
+.nav-chip-on,
+.cc-button-secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.cc-button-ghost,
+.auth-tab,
+.patient-topnav-link,
+.settings-back,
+.nav-chip,
+.nav-tab {
+  background: var(--background);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.cc-button-destructive,
+.patient-topnav-link.is-danger,
+.cancel-btn,
+.alert-banner button {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.cc-button:disabled,
+.start-session-button:disabled,
+.auth-submit:disabled,
+.settings-save:disabled,
+.review-button:disabled,
+.list-action-btn:disabled,
+.input-mode-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cc-input,
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea,
+.nav-input,
+.filter-bar select,
+.filter-bar input,
+.settings-field input,
+.settings-field select,
+.auth-field input,
+.appt-form input,
+.appt-form select,
+.barrier-form input,
+.barrier-form select {
+  min-height: 40px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
+}
+
+.cc-input:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus,
+.nav-input:focus,
+.filter-bar select:focus,
+.filter-bar input:focus,
+.settings-field input:focus,
+.settings-field select:focus,
+.auth-field input:focus,
+.appt-form input:focus,
+.appt-form select:focus,
+.barrier-form input:focus,
+.barrier-form select:focus {
+  border-color: var(--ring);
+  outline: 3px solid rgba(148, 163, 184, 0.22);
+  outline-offset: 2px;
+}
+
+.cc-badge,
+.badge,
+.mode-badge,
+.status-pill,
+.cat-count,
+.appt-count,
+.slot-chip,
+.source-chip,
+.access-badge,
+.lang-chip {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mode-badge,
+.status-pill,
+.cc-badge-secondary {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.queue-controls .status-pill {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.brand-lockup h1,
+.staff-header .brand-lockup h1,
+.patient-header .brand-lockup h1,
+.queue-header h2,
+.auth-card h1,
+.cc-card-title {
+  color: var(--foreground);
+}
+
+.brand-lockup h1::after {
+  background: var(--aggie-gold);
+}
+
+.start-session-button,
+.auth-submit,
+.settings-save,
+.landing-ctas .btn-primary,
+.map-banner-btn,
+.text-input-bar button {
+  background: var(--aggie-blue);
+  color: #ffffff;
+  border-color: var(--aggie-blue);
+}
+
+.start-session-button:hover:not(:disabled),
+.auth-submit:hover:not(:disabled),
+.settings-save:hover:not(:disabled),
+.landing-ctas .btn-primary:hover,
+.map-banner-btn:hover,
+.text-input-bar button:hover {
+  background: var(--aggie-blue);
+  color: #ffffff;
+  border-color: var(--aggie-blue);
+  box-shadow: 0 0 0 3px rgba(13, 39, 78, 0.16);
+}
+
+.staff-tab.active,
+.category-tab.active,
+.appt-page-tab.active,
+.date-tab.is-selected,
+.mode-tab.is-selected,
+.view-toggle button.is-active,
+.auth-tab.active,
+.nav-tab-active,
+.nav-chip-on,
+.mode-option.is-selected,
+.input-mode-btn.is-speech.is-selected,
+.input-mode-btn.is-camera.is-selected,
+.input-mode-btn.is-text.is-selected,
+.input-mode-btn.is-speech:active:not(:disabled),
+.input-mode-btn.is-camera:active:not(:disabled),
+.input-mode-btn.is-text:active:not(:disabled) {
+  background: var(--aggie-gold);
+  color: var(--foreground);
+  border-color: var(--aggie-gold);
+}
+
+.input-mode-btn.is-speech:hover:not(:disabled),
+.input-mode-btn.is-camera:hover:not(:disabled),
+.input-mode-btn.is-text:hover:not(:disabled),
+.mode-option:hover,
+.mode-option:focus-visible {
+  background: var(--accent);
+  color: var(--foreground);
+  border-color: var(--aggie-blue);
+  box-shadow: inset 0 0 0 1px var(--aggie-blue);
+}
+
+.mode-option:hover span,
+.mode-option:focus-visible span,
+.input-mode-btn:hover small {
+  color: var(--muted-foreground);
+}
+
+.input-mode-btn.is-speech,
+.input-mode-btn.is-camera,
+.input-mode-btn.is-text,
+.mode-option,
+.staff-tab,
+.category-tab,
+.appt-page-tab,
+.date-tab,
+.mode-tab,
+.view-toggle button,
+.new-intake-button,
+.review-button,
+.list-action-btn,
+.camera-button,
+.care-circle-notify,
+.add-slot-btn,
+.barrier-submit,
+.landing-ctas .btn-ghost,
+.nav-uber-btn {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.mode-option.is-selected,
+.input-mode-btn.is-speech.is-selected,
+.input-mode-btn.is-camera.is-selected,
+.input-mode-btn.is-text.is-selected {
+  background: var(--aggie-gold);
+  color: var(--foreground);
+  border-color: var(--aggie-gold);
+}
+
+.mode-option.is-selected span {
+  color: var(--foreground);
+}
+
+.mode-option span,
+.input-mode-btn small {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+.auth-shell,
+.settings-shell,
+.analytics-shell,
+.staff-shell,
+.patient-shell,
+.nav-shell {
+  background: var(--background);
+}
+
+.appt-table {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.appt-table th {
+  background: var(--muted);
+}
+
+.input-mode-btn,
+.mode-option {
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.input-mode-btn:hover:not(:disabled),
+.input-mode-btn.is-selected,
+.input-mode-btn:active:not(:disabled) {
+  box-shadow: none;
+}
+
 @media (max-width: 520px) {
   .barrier-form-row,
   .status-actions,
@@ -2051,7 +2588,8 @@ function App() {
         <Route element={<AuthPage />} path="/login" />
         <Route element={<AuthPage />} path="/signup" />
         <Route element={<SettingsPage />} path="/settings" />
-        <Route element={<PatientView />} path="/patient" />
+        <Route element={<PatientView />} path="/user" />
+        <Route element={<Navigate replace to="/user" />} path="/patient" />
         <Route element={<StaffView />} path="/staff" />
         <Route element={<AppointmentsView />} path="/staff/appointments" />
         <Route element={<AnalyticsView />} path="/staff/analytics" />

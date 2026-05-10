@@ -33,7 +33,7 @@ export default function LandingPage() {
         </p>
         <div className="landing-ctas">
           {isLoggedIn ? (
-            <button className="btn-primary" onClick={() => navigate('/patient')}>
+            <button className="btn-primary" onClick={() => navigate('/user')}>
               Start intake, {user?.profile?.name || user?.email?.split('@')[0]}
             </button>
           ) : (
@@ -41,7 +41,7 @@ export default function LandingPage() {
               Create free account
             </button>
           )}
-          <button className="btn-ghost" onClick={() => navigate('/patient')}>
+          <button className="btn-ghost" onClick={() => navigate('/user')}>
             Continue without account
           </button>
         </div>

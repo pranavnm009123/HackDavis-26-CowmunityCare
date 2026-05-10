@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from './useAuth.jsx';
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from './components/ui.jsx';
 
 function getStrength(pw) {
   let score = 0;
@@ -76,7 +77,7 @@ export default function AuthPage() {
       } else {
         await signup(form.email, form.password, form.name);
       }
-      navigate('/patient');
+      navigate('/user');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -86,55 +87,59 @@ export default function AuthPage() {
 
   return (
     <div className="auth-shell">
-      <div className="auth-card">
-        <h1>CowmunityCare</h1>
-        <p className="auth-subtitle">
-          {mode === 'login' ? 'Welcome back. Sign in to your account.' : 'Create an account to save your profile.'}
-        </p>
+      <Card className="auth-card">
+        <CardHeader>
+          <CardTitle>CowmunityCare</CardTitle>
+          <CardDescription className="auth-subtitle">
+            {mode === 'login' ? 'Welcome back. Sign in to your account.' : 'Create an account to save your profile.'}
+          </CardDescription>
+        </CardHeader>
 
-        <div className="auth-tabs">
-          <button className={`auth-tab${mode === 'login' ? ' active' : ''}`} type="button" onClick={() => { setMode('login'); setError(''); }}>Log in</button>
-          <button className={`auth-tab${mode === 'signup' ? ' active' : ''}`} type="button" onClick={() => { setMode('signup'); setError(''); }}>Sign up</button>
-        </div>
-
-        {error && <p className="auth-error">{error}</p>}
-
-        <form onSubmit={submit}>
-          {mode === 'signup' && (
-            <div className="auth-field">
-              <label htmlFor="auth-name">Full name</label>
-              <input id="auth-name" type="text" placeholder="Jane Smith" value={form.name} onChange={field('name')} autoComplete="name" />
-            </div>
-          )}
-          <div className="auth-field">
-            <label htmlFor="auth-email">Email</label>
-            <input id="auth-email" type="email" placeholder="you@example.com" value={form.email} onChange={field('email')} required autoComplete="email" />
+        <CardContent>
+          <div className="auth-tabs">
+            <Button className={`auth-tab${mode === 'login' ? ' active' : ''}`} variant="ghost" type="button" onClick={() => { setMode('login'); setError(''); }}>Log in</Button>
+            <Button className={`auth-tab${mode === 'signup' ? ' active' : ''}`} variant="ghost" type="button" onClick={() => { setMode('signup'); setError(''); }}>Sign up</Button>
           </div>
-          <div className="auth-field">
-            <label htmlFor="auth-password">Password</label>
-            <input id="auth-password" type="password" placeholder="••••••••" value={form.password} onChange={field('password')} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
-            {mode === 'signup' && <PasswordStrength password={form.password} />}
-          </div>
-          {mode === 'signup' && (
-            <div className="auth-field">
-              <label htmlFor="auth-confirm">Confirm password</label>
-              <input id="auth-confirm" type="password" placeholder="••••••••" value={form.confirm} onChange={field('confirm')} required autoComplete="new-password" />
-              {form.confirm && (
-                <span className={form.password === form.confirm ? 'pw-match ok' : 'pw-match no'}>
-                  {form.password === form.confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
-                </span>
-              )}
-            </div>
-          )}
-          <button className="auth-submit" type="submit" disabled={loading}>
-            {loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
-          </button>
-        </form>
 
-        <p className="auth-back">
-          <Link to="/">← Back to home</Link>
-        </p>
-      </div>
+          {error && <p className="auth-error">{error}</p>}
+
+          <form onSubmit={submit}>
+            {mode === 'signup' && (
+              <div className="auth-field">
+                <label htmlFor="auth-name">Full name</label>
+                <Input id="auth-name" type="text" placeholder="Jane Smith" value={form.name} onChange={field('name')} autoComplete="name" />
+              </div>
+            )}
+            <div className="auth-field">
+              <label htmlFor="auth-email">Email</label>
+              <Input id="auth-email" type="email" placeholder="you@example.com" value={form.email} onChange={field('email')} required autoComplete="email" />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="auth-password">Password</label>
+              <Input id="auth-password" type="password" placeholder="••••••••" value={form.password} onChange={field('password')} required autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+              {mode === 'signup' && <PasswordStrength password={form.password} />}
+            </div>
+            {mode === 'signup' && (
+              <div className="auth-field">
+                <label htmlFor="auth-confirm">Confirm password</label>
+                <Input id="auth-confirm" type="password" placeholder="••••••••" value={form.confirm} onChange={field('confirm')} required autoComplete="new-password" />
+                {form.confirm && (
+                  <span className={form.password === form.confirm ? 'pw-match ok' : 'pw-match no'}>
+                    {form.password === form.confirm ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  </span>
+                )}
+              </div>
+            )}
+            <Button className="auth-submit" type="submit" disabled={loading}>
+              {loading ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
+            </Button>
+          </form>
+
+          <p className="auth-back">
+            <Link to="/">← Back to home</Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

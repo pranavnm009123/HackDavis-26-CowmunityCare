@@ -12,7 +12,7 @@ export default function NavigateView() {
       <header className="nav-topbar">
         <Link className="nav-brand" to="/">CowmunityCare</Link>
         <nav className="nav-topnav">
-          <Link to="/patient">Voice intake</Link>
+          <Link to="/user">Voice intake</Link>
           {isLoggedIn ? (
             <>
               <Link to="/settings">My profile</Link>

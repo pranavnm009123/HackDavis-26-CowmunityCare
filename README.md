@@ -1,10 +1,12 @@
 # CowmunityCare
 
-> Voice-first AI intake for free clinics, shelters, food banks, and community support programs.
+> Accessible intake for healthcare, housing, hunger, and everyday help — speak, sign, or type what you need.
 
-CowmunityCare lets patients speak (or sign) in any of 70+ languages and receive structured, real-time intake — no forms, no wait times, no language barriers. Staff see a live dashboard of intake cards with urgency flags, resource matches, and appointment bookings the moment a conversation ends.
+CowmunityCare is a community intake assistant for people who should not have to fight a form before they can ask for help. A patient or community member can speak, use ASL/sign language through video, or type in a chat-style flow. The AI asks one question at a time, gathers the important details, and turns the conversation into a structured record for staff.
 
-Built at **HackDavis 2026**.
+For staff, CowmunityCare becomes a live intake queue. Each request arrives with an English summary, urgency level, accessibility needs, recommended next step, matched local resources, and appointment details when a booking is made.
+
+Built at **HackDavis 2026** for clinics, shelters, food programs, and community care teams.
 
 ---
 
@@ -13,28 +15,40 @@ Built at **HackDavis 2026**.
 | URL | Who uses it |
 |-----|-------------|
 | `http://localhost:5173/` | Landing page |
-| `http://localhost:5173/patient` | Patient voice intake |
+| `http://localhost:5173/user` | User intake |
 | `http://localhost:5173/staff` | Staff live queue |
 | `http://localhost:5173/staff/appointments` | Appointment management |
 | `http://localhost:5173/staff/analytics` | Analytics dashboard |
 | `http://localhost:5173/navigate` | Standalone map & route planner |
-| `http://localhost:5173/settings` | Patient profile settings |
+| `http://localhost:5173/settings` | User profile settings |
 | `http://localhost:3001/health` | Server health check |
 
 ---
 
-## Features
+## What CowmunityCare Can Do
+
+- Help someone start an intake by **voice, ASL/sign language, or text**.
+- Ask for name, email, phone, and service needs conversationally instead of making the user fill out a long form.
+- Support healthcare, housing, food aid, and general community support requests.
+- Detect urgent situations and alert staff when something may need fast attention.
+- Match people with local resources such as clinics, shelters, food banks, housing links, pharmacy help, and support services.
+- Open a map when someone says they need to go somewhere, then recommend a route based on mobility and access needs.
+- Book appointments from available doctor slots and email the confirmation.
+- Email the final summary and useful resource links at the end of the conversation.
+- Save returning patient profiles so people do not have to repeat basic details every visit.
+- Give staff a live queue, analytics, appointment management, and structured cards they can act on quickly.
 
 ### Intake Modes
-- **Healthcare** (`clinic`) — symptoms, duration, urgency, insurance, allergies, red flags
-- **Housing** (`shelter`) — housing status, family size, pets, mobility, safety timeline
-- **Hunger** (`food_aid`) — household size, dietary needs, ZIP code, transport limits
-- **Here-to-Help** (`support_services`) — accessibility-first matching: wheelchair, language, transport, and barriers scored before any recommendation is made
+- **Healthcare** (`clinic`) — symptoms, duration, urgency, insurance, allergies, accessibility, and next steps.
+- **Housing** (`shelter`) — current housing status, safety, family size, pets, mobility, timeline, and shelter/resource needs.
+- **Hunger** (`food_aid`) — household size, dietary needs, ZIP code, transport limits, and supply needs.
+- **Here-to-Help** (`support_services`) — everyday support with access-first matching for language, mobility, transportation, cost, and known barriers.
 
 ### AI Voice Pipeline
 - Real-time PCM audio streaming to **Google Gemini Live** (`gemini-3.1-flash-live-preview`)
 - Bi-directional audio — Gemini speaks back in voice (Aoede voice)
 - Full input + output transcription shown in real time
+- Text input mode for users who prefer typing or cannot use audio/video
 - **ASL / sign language** mode: video frames captured every 7 s, interpreted by Gemini vision, one question per turn with a signing window
 - Translate-to-English toggle for any non-English conversation
 
@@ -85,7 +99,7 @@ Built at **HackDavis 2026**.
 ### Data Flow
 
 ```
-Patient Browser (/patient)
+User Browser (/user)
   │  PCM audio @ 16 kHz (base64 chunks)
   ▼
 Server WebSocket (/ws/patient)
@@ -102,7 +116,7 @@ Server WebSocket (/ws/patient)
         ├─ book_appointment ─────────────────────► MongoDB + Staff WS → NEW_APPOINTMENT
         │
         ├─ search_housing ───────────────────────► Craigslist scrape / static listings
-        ├─ request_navigation ───────────────────► Patient WS → map opens in new tab
+        ├─ request_navigation ───────────────────► User WS → map opens in new tab
         ├─ send_email ───────────────────────────► Nodemailer (Gmail / SMTP / Ethereal)
         │
         ├─ finalize_intake
@@ -115,7 +129,7 @@ Server WebSocket (/ws/patient)
 
   │  Audio response @ 24 kHz (base64)
   ▼
-Patient Browser (plays audio + shows transcript)
+User Browser (plays audio + shows transcript)
 
 Staff Browser (/staff)  ←──  WebSocket /ws/staff
   Receives: INTAKE_SNAPSHOT, NEW_INTAKE, INTAKE_UPDATED,
@@ -209,19 +223,40 @@ Access-first: `check_resource_access` scores each facility against the patient's
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, Vite, React Router 6 |
-| Mapping | `@react-google-maps/api`, Leaflet / react-leaflet |
-| Backend | Node.js, Express 5, `ws` (WebSocket) |
-| Voice AI | Google Gemini Live (`gemini-3.1-flash-live-preview`) |
-| NLP / Normalization | Anthropic Claude (`claude-sonnet-4-6`) |
+| Layer | What we use |
+|-------|-------------|
+| Frontend | React 19, Vite 8, React Router 6 |
+| UI system | Local shadcn-style primitives in `client/src/components/ui.jsx`, plus CowmunityCare blue/gold tokens in `App.jsx` |
+| Maps & routing UI | `@react-google-maps/api`, Leaflet, React Leaflet |
+| Charts | Recharts for staff analytics |
+| Backend | Node.js, Express 5, `ws` WebSockets |
+| Voice / vision AI | Google Gemini Live (`gemini-3.1-flash-live-preview`) |
+| Intake normalization | Anthropic Claude (`claude-sonnet-4-6`) |
 | Database | MongoDB + Mongoose |
-| Auth | bcryptjs, jsonwebtoken (JWT 7-day) |
-| Email | Nodemailer (Gmail / SMTP / Ethereal fallback) |
-| Place Search | Google Places API → Geoapify → Photon/Komoot |
-| Routing | Google Directions API → OSRM |
-| RAG (optional) | Backboard SDK |
+| Auth | bcryptjs password hashing + JWT session tokens |
+| Email | Nodemailer with Gmail, custom SMTP, or Ethereal dev fallback |
+| Resource search | Static Yolo County resources, Backboard RAG, Google Places, Geoapify, Photon/Komoot |
+| Directions | Google Directions API with OSRM fallback |
+| Dev workflow | npm workspaces + concurrently |
+
+### Main Libraries
+
+**Client**
+- `react`, `react-dom` — app rendering and UI state.
+- `react-router-dom` — routes for landing, `/user`, staff, settings, and navigation.
+- `@react-google-maps/api`, `leaflet`, `react-leaflet` — maps, places, and route display.
+- `recharts` — staff analytics charts.
+- `vite`, `eslint` — local dev server, production build, and linting.
+
+**Server**
+- `express` — REST API and route mounting.
+- `ws` — real-time patient and staff WebSocket channels.
+- `@google/genai` — Gemini Live audio, video, and tool-calling session.
+- `@anthropic-ai/sdk` — turns raw conversation fields into structured intake cards.
+- `mongoose` — MongoDB models for users, intakes, doctors, appointments, facilities, and barriers.
+- `jsonwebtoken`, `bcryptjs` — login, signup, protected profile flow.
+- `nodemailer` — summary, resource, welcome, and appointment emails.
+- `backboard-sdk` — optional semantic resource matching from `server/data/yolo_resources.md`.
 
 ---
 
@@ -254,6 +289,13 @@ Copy `.env.example` to `.env` in the repo root:
 
 ## Setup & Running
 
+### Prerequisites
+
+- Node.js 20+ and npm
+- MongoDB running locally or a MongoDB Atlas connection string
+- Gemini and Anthropic API keys for the full AI flow
+- Optional: Google Maps, Geoapify, Gmail/SMTP, and Backboard keys
+
 ```bash
 # 1. Clone
 git clone https://github.com/pranavnm009123/HackDavis-26-CowmunityCare.git
@@ -276,13 +318,26 @@ npm run dev
 Client → `http://localhost:5173`  
 Server → `http://localhost:3001`
 
+Open these first:
+
+| Route | Purpose |
+|-------|---------|
+| `http://localhost:5173/` | Landing page |
+| `http://localhost:5173/user` | User/community intake |
+| `http://localhost:5173/staff` | Staff queue |
+| `http://localhost:5173/navigate` | Map and route planner |
+| `http://localhost:3001/health` | Backend health check |
+
+If port `5173` is busy, Vite may choose the next available port and print it in the terminal.
+
 ### Individual commands
 
 ```bash
-npm run dev:server     # Server only (port 3001)
-npm run dev:client     # Client only (port 5173)
-npm run build          # Production build of client
-cd client && npm run lint
+npm run dev:server        # Server only (port 3001)
+npm run dev:client        # Client only (Vite, usually port 5173)
+npm run build             # Production build of the client
+npm run start -w server   # Start the server package directly
+cd client && npm run lint # Lint the frontend
 ```
 
 ### Test individual server modules
@@ -307,8 +362,8 @@ node functions.js      # Test tag_urgency + lookup_resources
 | `POST` | `/auth/register` | Create account |
 | `POST` | `/auth/login` | Login, returns JWT |
 | `GET` | `/auth/me` | Get current user (JWT required) |
-| `GET` | `/api/profile` | Get patient profile (JWT required) |
-| `PUT` | `/api/profile` | Update patient profile (JWT required) |
+| `GET` | `/api/profile` | Get user profile (JWT required) |
+| `PUT` | `/api/profile` | Update user profile (JWT required) |
 | `PUT` | `/api/profile/password` | Change password (JWT required) |
 | `PUT` | `/api/profile/email` | Change email (JWT required) |
 | `GET` | `/api/places/autocomplete?q=&near=` | Place search |
@@ -330,7 +385,7 @@ node functions.js      # Test tag_urgency + lookup_resources
 
 ### WebSocket Protocol
 
-**Patient ↔ Server** (`/ws/patient`)
+**User ↔ Server** (`/ws/patient`)
 
 | Direction | Message | Fields |
 |-----------|---------|--------|
@@ -372,35 +427,39 @@ Language is auto-detected from the patient's speech. The AI responds in the same
 
 ```
 HackDavis-26-CowmunityCare/
-├── client/                   # React frontend (Vite)
+├── client/                    # React + Vite frontend
 │   ├── public/
 │   │   └── landing-bg.png
 │   └── src/
-│       ├── App.jsx            # Router, AuthProvider, global CSS
-│       ├── LandingPage.jsx
-│       ├── AuthPage.jsx
-│       ├── PatientView.jsx
-│       ├── StaffView.jsx
-│       ├── SettingsPage.jsx
+│       ├── App.jsx             # Router, AuthProvider, global CSS and design tokens
+│       ├── LandingPage.jsx     # Public landing page
+│       ├── AuthPage.jsx        # Login and signup flow
+│       ├── PatientView.jsx     # /user intake: speech, ASL/video, text, transcript
+│       ├── StaffView.jsx       # Live queue for staff
+│       ├── IntakeCard.jsx      # Structured intake card UI
+│       ├── AppointmentsView.jsx
+│       ├── AnalyticsView.jsx
 │       ├── NavigateView.jsx
 │       ├── NavigatePanel.jsx
-│       ├── AnalyticsView.jsx
-│       ├── AppointmentsView.jsx
-│       ├── IntakeCard.jsx
+│       ├── SettingsPage.jsx
 │       ├── useAuth.jsx
 │       ├── useSocket.js
 │       ├── useAudio.js
 │       ├── useGeolocation.js
-│       └── audioWorklet.js
-├── server/                   # Node.js backend
-│   ├── index.js              # Entry point
-│   ├── geminiSession.js
-│   ├── functions.js
-│   ├── claude.js
-│   ├── intakeTemplates.js
-│   ├── navigate.js
-│   ├── email.js
-│   ├── storage.js
+│       ├── audioWorklet.js
+│       ├── assets/
+│       │   └── hero.png
+│       └── components/
+│           └── ui.jsx          # Local shadcn-style Button/Card/Input/Select/Badge primitives
+├── server/                    # Node.js + Express backend
+│   ├── index.js               # REST API, WebSockets, startup, route mounting
+│   ├── geminiSession.js       # Gemini Live session manager
+│   ├── functions.js           # AI tool function implementations
+│   ├── claude.js              # Claude structured intake normalization
+│   ├── intakeTemplates.js     # Mode prompts, required fields, urgency rules
+│   ├── navigate.js            # Place search and directions fallback chain
+│   ├── email.js               # Email templates and transport fallback
+│   ├── storage.js             # Intake model and persistence helpers
 │   ├── users.js
 │   ├── appointments.js
 │   ├── doctors.js
@@ -408,16 +467,22 @@ HackDavis-26-CowmunityCare/
 │   ├── supportServices.js
 │   ├── backboardRag.js
 │   ├── backboardMatch.js
-│   ├── models/User.js
-│   ├── middleware/authMiddleware.js
+│   ├── models/
+│   │   └── User.js
+│   ├── middleware/
+│   │   └── authMiddleware.js
 │   ├── routes/
 │   │   ├── auth.js
 │   │   ├── profile.js
 │   │   └── navigate.js
+│   ├── scripts/
+│   │   └── sync-backboard-rag.mjs
 │   └── data/
 │       └── yolo_resources.md
 ├── .env.example
-├── package.json              # Root — concurrently runs client + server
+├── package.json               # npm workspaces and root dev scripts
+├── client/package.json
+├── server/package.json
 └── README.md
 ```
 
