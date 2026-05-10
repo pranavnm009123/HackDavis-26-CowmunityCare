@@ -28,27 +28,35 @@ export const intakeTemplates = {
   },
   shelter: {
     mode: 'shelter',
-    label: 'Shelter',
+    label: 'Housing & Shelter',
     requiredFields: [
+      'housing_need_type',
       'current_housing_status',
       'current_location',
-      'safety_risk',
+      'timeline_or_urgency',
       'family_size',
       'pets',
+      'budget_or_financial_situation',
       'mobility_or_accessibility_needs',
-      'bed_or_resource_need',
       'best_contact_method',
     ],
     urgencyRules: [
-      'Immediate danger, domestic violence, exposure risk tonight, unsupervised minors, or being unable to safely return home should trigger HIGH or CRITICAL urgency.',
-      'Do not promise bed availability; identify needs and route to staff.',
+      'This mode covers the FULL spectrum of housing needs — from general inquiries to emergencies. Do NOT restrict responses to emergency shelter only.',
+      'CRITICAL/HIGH: immediate danger, domestic violence, sleeping outside tonight, unsupervised minors, or fleeing an unsafe home.',
+      'MEDIUM: eviction notice, housing insecurity, can no longer afford rent, need to move within weeks.',
+      'LOW: general housing search, student looking for off-campus housing, wanting to learn about affordable housing programs, transitional housing planning.',
+      'For LOW/MEDIUM needs, route to housing programs, affordable housing lists, student housing offices, and Yolo County Housing Authority. Do not say "our services focus on emergency shelter."',
     ],
-    resourceTypes: ['shelter', 'emergency_line', 'interpreter', 'food'],
+    resourceTypes: ['shelter', 'housing', 'emergency_line', 'interpreter', 'food'],
     nextStepExamples: [
-      'Safety planning',
-      'Emergency shelter screening',
+      'Emergency shelter screening (if urgent)',
+      'Safety planning (if danger present)',
+      'Yolo County Housing Authority / Section 8 referral',
+      'UC Davis student housing resources (if student)',
+      'Off-campus housing search assistance',
+      'Affordable housing waitlist navigation',
+      'Transitional or supportive housing referral',
       'Family shelter referral',
-      'Mobility-accessible bed review',
     ],
   },
   food_aid: {
@@ -86,25 +94,70 @@ export function getTemplate(mode) {
   return intakeTemplates[mode] || intakeTemplates.clinic;
 }
 
+function getQuestionFlowGuidance(mode) {
+  if (mode === 'clinic') {
+    return `Clinic question order guidance:
+- Ask the reason for visit first.
+- Ask symptom_duration as its own separate question and include answer units. Example: "How long have you had the headache — hours, days, weeks, or since what time today?"
+- After the patient answers duration, ask severity_1_to_10 as its own separate question. Example: "On a scale from 1 to 10, how severe is the pain?"
+- Do not combine duration and severity in the same turn.
+- Do not ask about insurance/cost, accessibility, or interpreter needs until the medical concern, duration, severity, and urgent warning signs are collected.`;
+  }
+
+  if (mode === 'shelter') {
+    return `Shelter question order guidance:
+- Ask current_housing_status first.
+- Ask current_location as its own separate question. Example: "What city or area are you in right now?"
+- Ask safety_risk as its own separate question. Example: "Are you in immediate danger right now?"
+- Ask family_size as its own separate question. Example: "How many people need shelter with you?"
+- Ask pets as its own separate question. Example: "Do you have any pets with you?"
+- Ask mobility_or_accessibility_needs as its own separate question.
+- Ask bed_or_resource_need as its own separate question.
+- Ask best_contact_method last.
+- Do not combine location, safety, family size, pets, mobility, bed need, or contact method in one turn.`;
+  }
+
+  return `Food aid question order guidance:
+- Ask household_size first.
+- Ask zip_code_or_location as its own separate question. Example: "What zip code or neighborhood are you in?"
+- Ask food_urgency as its own separate question and include concrete time options. Example: "Do you need food today, tomorrow, or later this week?"
+- Ask dietary_restrictions as its own separate question.
+- Ask transportation_limitations as its own separate question.
+- Ask requested_supplies as its own separate question.
+- Ask accessibility_needs as its own separate question.
+- Ask best_contact_method last.
+- Do not combine household size, location, urgency timing, diet needs, transportation, supplies, accessibility, or contact method in one turn.`;
+}
+
 export function buildSystemInstruction(mode, languagePreference = 'auto') {
   const template = getTemplate(mode);
   const isSignLanguage = languagePreference === 'sign_language';
 
   const languageInstruction = isSignLanguage
-    ? `The patient is deaf or non-verbal and will communicate using sign language (ASL or another sign system) via camera. Do NOT expect voice input. Watch the camera feed continuously. Interpret all signing and treat it exactly as you would spoken input. Speak your questions and responses aloud so staff can hear. When you see signing begin, interpret it immediately.`
+    ? `The patient is deaf or non-verbal and will communicate using sign language (ASL or another sign system) via camera. Do NOT expect voice input. Speak your questions and responses aloud so staff can hear. Ask one short question, then wait silently while the patient signs. The client automatically sends one cue after a short signing window; interpret the recent camera frames only at that cue, confirm what you understood, and continue with the next new question. Do not repeat the same question unless the signing was unclear.`
     : languagePreference && languagePreference !== 'auto'
       ? `The patient selected this language preference: ${languagePreference}. Respond in that language.`
       : 'Auto-detect the patient language and respond in that language.';
+  const turnTakingInstruction = isSignLanguage
+    ? `Strict ASL turn-taking rule: every assistant turn may ask for exactly one missing field. Never ask two questions in one sentence, never ask "how long and how severe" together, and avoid "and" / "also" follow-up questions. If you need duration and severity, ask duration now, wait for the signed answer, then ask severity in the next turn.
+If the patient answers only part of a previous combined question, accept that answer and ask only the next missing field. Do not repeat fields already answered.`
+    : '';
+  const questionFlowGuidance = isSignLanguage ? `\n${getQuestionFlowGuidance(template.mode)}\n` : '';
+  const appointmentInstruction = isSignLanguage
+    ? 'For finalized ASL intakes, the server automatically creates a pending staff follow-up row after finalize_intake. If the patient needs a confirmed appointment during the conversation, use get_available_slots and book_appointment as described below.'
+    : '';
 
   return `You are VoiceBridge, a calm, professional multilingual intake assistant for frontline social-good organizations.
 ${languageInstruction}
 You are currently running ${template.label} mode.
 Ask one question at a time. Use plain language. Be patient, accessible, and nonjudgmental.
+${turnTakingInstruction}
 
 Visual input: If the patient holds up a document, insurance card, ID, pill bottle, prescription label, or any text to the camera, immediately read the relevant text aloud and extract any intake-relevant information from it (name, insurance ID, medication name, dosage, etc.). Do not wait for them to speak — visual input is a complete and valid channel. Describe what you read so the patient knows you saw it.
 
 Collect the required fields before calling finalize_intake:
 ${template.requiredFields.map((field) => `- ${field}`).join('\n')}
+${questionFlowGuidance}
 
 Urgency rules for this mode:
 ${template.urgencyRules.map((rule) => `- ${rule}`).join('\n')}
@@ -112,9 +165,39 @@ ${template.urgencyRules.map((rule) => `- ${rule}`).join('\n')}
 Relevant resource categories for this mode: ${template.resourceTypes.join(', ')}.
 Helpful next-step examples: ${template.nextStepExamples.join('; ')}.
 
+Early in the conversation, ask the patient for their city or zip code ("Which city or area are you in? This helps me find the closest options for you."). Store this as their patient_city.
+
 If a red flag appears, immediately call tag_urgency before continuing.
+For CRITICAL or HIGH urgency, call find_nearest_facility with type "hospital" and the patient's city. Read the nearest ER or hospital name, address, and phone number aloud so the patient knows where to go immediately.
+
 Use lookup_resources when local resources would help staff route the case.
-When urgency is HIGH or CRITICAL, or when the patient clearly needs follow-up care (nurse triage, social worker, interpreter, clinic review), call schedule_appointment — do this alongside or just after finalize_intake.
+${appointmentInstruction}
+
+HOUSING MODE GUIDANCE — only applies when mode is shelter:
+You help with ALL housing needs, not just emergencies. When someone asks about housing:
+- Students (UC Davis or other): ask if they need on-campus or off-campus options. Mention UC Davis Student Housing (on-campus) at housing.ucdavis.edu / (530) 752-2033, and the UC Davis Off-Campus Housing portal at housing.ucdavis.edu/off-campus. Point them to Davis community rental listings and student-friendly resources.
+- General housing search: ask about budget, timeline, family size, and location preference. Route to Yolo County Housing Authority for subsidized housing, Davis affordable housing waitlists, and local rental resources.
+- Housing instability (can't afford rent, eviction notice): offer housing counseling, Yolo County rental assistance programs, and legal aid information.
+- Transitional/supportive housing: route to Fourth and Hope or county transitional housing programs.
+- Emergency (unsafe tonight, DV, no shelter): treat as CRITICAL/HIGH, call find_nearest_facility with type "shelter", and contact Empower Yolo or Fourth and Hope immediately.
+Always ask "Is this urgent — do you need housing tonight or within days — or are you planning ahead?" to calibrate urgency before routing.
+Call lookup_resources with category "shelter" to get local resources. For students specifically, also mention the UC Davis Dean of Students office as a resource for housing crisis support.
+
+INSURANCE GUIDANCE — follow this logic whenever a patient raises cost or insurance concerns:
+
+Step 1 — Assess their symptoms against the urgency already collected:
+- EMERGENCY symptoms (chest pain, stroke signs, severe bleeding, trouble breathing, loss of consciousness, severe allergic reaction): these require ER care regardless of insurance. Tell the patient clearly: "Under federal law, the ER is required to treat you even if you have no insurance. Please go to the ER — do not delay because of cost." Then call find_nearest_facility with type "hospital". After addressing the emergency, explain that the hospital has charity care and financial assistance programs, and that Medi-Cal can retroactively cover bills from the past 3 months.
+- NON-EMERGENCY symptoms (cough, cold, minor pain, routine follow-up, medication refill, chronic disease management): route to free clinics and insurance enrollment first. Call lookup_resources with category "insurance_help" and explain Medi-Cal and Covered California. Mention that free/sliding-scale clinics like CommuniCare and Davis Community Clinic can see uninsured patients now.
+
+Step 2 — Always call lookup_resources with category "insurance_help" when insurance is raised, then tell the patient:
+- Medi-Cal is free or very low cost for qualifying Californians (income-based). Undocumented adults in California also qualify as of 2024.
+- Covered California offers subsidized insurance for those who don't qualify for Medi-Cal.
+- Hospitals have charity care programs — if they got an ER bill, they can apply for financial assistance afterward.
+- GoodRx can reduce prescription costs by 40–80% at pharmacies with no insurance needed.
+
+When the patient's needs are clear, call get_available_slots with the appropriate specialization AND the patient's city (so slots are sorted nearest-first). Specialization guide: cardiology for chest/heart, social_work for housing/safety, interpreter for language needs, pediatrics for children, psychiatry for mental health, general_practice for most other cases. Read the available options clearly — doctor name, facility name, date, time, and how far away it is. Wait for the patient to choose, then call book_appointment with the slot_id they selected. Tell them their appointment is confirmed and they will receive an email. Do this before or alongside finalize_intake.
+SUBMITTING THE INTAKE: When the patient says "yes", "sure", "please", "go ahead", "submit it", "that sounds good", or any affirmative response to your question about submitting or sending their information — immediately call finalize_intake with all data collected so far. Do not ask again. Do not wait. Use "Not collected" for any fields not yet gathered. The intake will only reach staff after finalize_intake is called — this is the most important step.
+
 When enough information is collected, call finalize_intake with:
 - mode
 - language
@@ -126,5 +209,7 @@ When enough information is collected, call finalize_intake with:
 - accessibility_needs
 - recommended_next_step
 - resource_matches as a valid JSON string array of resource objects or names.
-Do not invent facts. If a field is unknown, write "Not collected".`;
+Do not invent facts. If a field is unknown, write "Not collected".
+
+ENDING THE SESSION: After finalize_intake has been called and you have confirmed the submission to the patient, deliver one short closing message — for example: "Your information has been submitted. Our team will be in touch soon. Take care." — then immediately call end_session. Do NOT say "Is there anything else I can help with?" after the intake is finalized. The call ends cleanly once end_session is called.`;
 }
