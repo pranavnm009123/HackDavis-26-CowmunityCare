@@ -174,13 +174,16 @@ export function useAudio({ send, incomingMessage }) {
 
   useEffect(() => {
     if (incomingMessage?.type === 'audio' && incomingMessage.data) {
-      playPcmAudio(incomingMessage).catch((playbackError) => {
-        setError(playbackError.message || 'Unable to play Gemini audio.');
+      const chunk = incomingMessage;
+      queueMicrotask(() => {
+        playPcmAudio(chunk).catch((playbackError) => {
+          setError(playbackError.message || 'Unable to play Gemini audio.');
+        });
       });
     }
 
     if (incomingMessage?.type === 'audio_interrupted') {
-      stopPlayback();
+      queueMicrotask(stopPlayback);
     }
   }, [incomingMessage, playPcmAudio, stopPlayback]);
 

@@ -110,38 +110,47 @@ function getPartMimeRate(mimeType) {
   return match ? Number(match[1]) : 24000;
 }
 
+/** Normalize snake_case Live API payloads (JSON) alongside camelCase. */
+function getLiveServerContent(message) {
+  return message.serverContent ?? message.server_content;
+}
+
 function forwardServerContent(message, patientWs) {
-  const content = message.serverContent;
+  const content = getLiveServerContent(message);
 
   if (!content) {
     return;
   }
 
-  if (content.inputTranscription?.text) {
+  const inputTx = content.inputTranscription ?? content.input_transcription;
+  if (inputTx?.text) {
     sendJson(patientWs, {
       type: 'transcript',
       role: 'user',
-      text: content.inputTranscription.text,
+      text: inputTx.text,
     });
   }
 
-  if (content.outputTranscription?.text) {
+  const outputTx = content.outputTranscription ?? content.output_transcription;
+  if (outputTx?.text) {
     sendJson(patientWs, {
       type: 'transcript',
       role: 'model',
-      text: content.outputTranscription.text,
+      text: outputTx.text,
     });
   }
 
-  const parts = content.modelTurn?.parts || [];
+  const modelTurn = content.modelTurn ?? content.model_turn;
+  const parts = modelTurn?.parts || [];
   for (const part of parts) {
-    const inlineData = part.inlineData;
+    const inlineData = part.inlineData ?? part.inline_data;
+    const mimeType = inlineData?.mimeType ?? inlineData?.mime_type;
 
-    if (inlineData?.data && inlineData.mimeType?.startsWith('audio/')) {
+    if (inlineData?.data && mimeType?.startsWith('audio/')) {
       sendJson(patientWs, {
         type: 'audio',
         data: inlineData.data,
-        sampleRate: getPartMimeRate(inlineData.mimeType),
+        sampleRate: getPartMimeRate(mimeType),
       });
     }
   }
@@ -152,7 +161,13 @@ function forwardServerContent(message, patientWs) {
 }
 
 async function handleToolCall(message, session, broadcast, storage, context) {
-  const functionCalls = message.toolCall?.functionCalls || [];
+  const toolCall = message.toolCall ?? message.tool_call;
+  const rawCalls = toolCall?.functionCalls ?? toolCall?.function_calls ?? [];
+  const functionCalls = rawCalls.map((call) => ({
+    id: call.id,
+    name: call.name,
+    args: call.args ?? call.arguments ?? {},
+  }));
 
   if (!functionCalls.length) {
     return;
@@ -214,7 +229,8 @@ export async function createGeminiSession({
     model: MODEL,
     config: {
       responseModalities: ['AUDIO'],
-      thinkingConfig: { thinkingLevel: 'LOW' },
+      /* Prefer minimal latency; Gemini 3.1 Live documents LOW for light reasoning. */
+      thinkingConfig: { thinkingLevel: 'MINIMAL' },
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       speechConfig: {
@@ -248,15 +264,14 @@ export async function createGeminiSession({
     },
   });
 
-  session.sendClientContent({
-    turns: [{ role: 'user', parts: [{ text: 'Hello' }] }],
-    turnComplete: true,
-  });
+  /* Gemini 3.1 Flash Live: incremental user content during the session should use
+     sendRealtimeInput, not sendClientContent (unless seeding history explicitly). */
+  session.sendRealtimeInput({ text: 'Hello.' });
 
   return {
     sendAudio(base64Pcm) {
       session.sendRealtimeInput({
-        media: {
+        audio: {
           data: base64Pcm,
           mimeType: 'audio/pcm;rate=16000',
         },
@@ -271,10 +286,7 @@ export async function createGeminiSession({
       });
     },
     sendText(text) {
-      session.sendClientContent({
-        turns: [{ role: 'user', parts: [{ text }] }],
-        turnComplete: true,
-      });
+      session.sendRealtimeInput({ text });
     },
     close() {
       session.close();

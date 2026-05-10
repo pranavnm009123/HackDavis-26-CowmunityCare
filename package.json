@@ -2,12 +2,16 @@
   "name": "clinicvoice",
   "private": true,
   "version": "0.1.0",
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node ./server/index.js",
-    "dev:client": "npm run dev --prefix client",
-    "build": "npm run build --prefix client",
-    "start": "npm run start --prefix server"
+    "dev:client": "npm run dev -w client",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
