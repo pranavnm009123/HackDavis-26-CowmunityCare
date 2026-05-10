@@ -152,6 +152,15 @@ const functionDeclarations = [
       required: ['slot_id', 'patient_name', 'reason', 'urgency'],
     },
   },
+  {
+    name: 'end_session',
+    description: 'Close the session after finalize_intake has been called and a brief closing message has been delivered. Call this once — do not ask "Is there anything else I can help with?" after an intake is finalized.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 function sendJson(ws, payload) {
@@ -230,6 +239,12 @@ async function handleToolCall(message, session, broadcast, storage, context, use
 
   const functionResponses = await Promise.all(
     functionCalls.map(async (call) => {
+      if (call.name === 'end_session') {
+        // Give the bot ~2.5s to finish speaking the closing message before closing
+        setTimeout(() => session.close(), 2500);
+        return { id: call.id, name: call.name, response: { success: true } };
+      }
+
       try {
         const response = await dispatchFunctionCall(
           call.name,
