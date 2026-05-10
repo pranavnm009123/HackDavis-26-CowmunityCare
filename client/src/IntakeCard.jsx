@@ -116,10 +116,10 @@ const urgencyClass = {
 };
 
 const modeLabels = {
-  clinic: 'Clinic',
-  shelter: 'Shelter',
-  food_aid: 'Food Aid',
-  support_services: 'Access & Support',
+  clinic: 'Healthcare',
+  shelter: 'Housing',
+  food_aid: 'Hunger',
+  support_services: 'Here-to-Help',
 };
 
 function humanize(key) {

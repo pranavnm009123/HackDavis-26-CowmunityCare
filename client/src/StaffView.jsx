@@ -120,7 +120,7 @@ export default function StaffView() {
         <div className="queue-header">
           <div>
             <p className="eyebrow">
-              {filters.mode === 'all' ? 'All categories' : filters.mode === 'food_aid' ? 'Food Aid' : filters.mode === 'clinic' ? 'Free Clinic' : filters.mode === 'support_services' ? 'Access & Support' : 'Shelter'}
+              {filters.mode === 'all' ? 'All categories' : filters.mode === 'food_aid' ? 'Hunger' : filters.mode === 'clinic' ? 'Healthcare' : filters.mode === 'support_services' ? 'Here-to-Help' : 'Housing'}
             </p>
             <h2>Intake requests</h2>
           </div>
@@ -141,10 +141,10 @@ export default function StaffView() {
         <div className="category-tabs">
           {[
             { value: 'all', label: 'All requests' },
-            { value: 'clinic', label: 'Free Clinic' },
-            { value: 'shelter', label: 'Shelter' },
-            { value: 'food_aid', label: 'Food Aid' },
-            { value: 'support_services', label: 'Access & Support' },
+            { value: 'clinic', label: 'Healthcare' },
+            { value: 'shelter', label: 'Housing' },
+            { value: 'food_aid', label: 'Hunger' },
+            { value: 'support_services', label: 'Here-to-Help' },
           ].map(({ value, label }) => {
             const count = value === 'all' ? cards.length : cards.filter((c) => c.mode === value).length;
             return (
@@ -197,7 +197,7 @@ export default function StaffView() {
         {filteredCards.length === 0 ? (
           <div className="empty-state">
             <p>No intake cards yet.</p>
-            <span>Clinic, shelter, and food-aid records appear here in real time.</span>
+            <span>Healthcare, housing, hunger, and Here-to-Help records appear here in real time.</span>
           </div>
         ) : viewMode === 'list' ? (
           <div className="cards-list">

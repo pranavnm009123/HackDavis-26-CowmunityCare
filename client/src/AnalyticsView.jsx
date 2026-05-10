@@ -29,7 +29,7 @@ function EmptyChart() {
   return <div className="chart-empty">No data yet</div>;
 }
 
-const MODE_LABELS = { all: 'All categories', clinic: 'Free Clinic', shelter: 'Shelter', food_aid: 'Food Aid' };
+const MODE_LABELS = { all: 'All categories', clinic: 'Healthcare', shelter: 'Housing', food_aid: 'Hunger' };
 
 export default function AnalyticsView() {
   const [intakes, setIntakes] = useState(null);
@@ -81,9 +81,9 @@ export default function AnalyticsView() {
   const modeCounts = { clinic: 0, shelter: 0, food_aid: 0 };
   allIntakes.forEach((c) => { if (c.mode in modeCounts) modeCounts[c.mode]++; });
   const modeData = [
-    { name: 'Clinic', count: modeCounts.clinic },
-    { name: 'Shelter', count: modeCounts.shelter },
-    { name: 'Food Aid', count: modeCounts.food_aid },
+    { name: 'Healthcare', count: modeCounts.clinic },
+    { name: 'Housing', count: modeCounts.shelter },
+    { name: 'Hunger', count: modeCounts.food_aid },
   ];
 
   const langMap = {};
@@ -306,7 +306,7 @@ export default function AnalyticsView() {
               )}
             </div>
 
-            <div className="chart-card" role="img" aria-label={`Requests by category: clinic ${modeCounts.clinic}, shelter ${modeCounts.shelter}, food aid ${modeCounts.food_aid}.`}>
+            <div className="chart-card" role="img" aria-label={`Requests by category: healthcare ${modeCounts.clinic}, housing ${modeCounts.shelter}, hunger ${modeCounts.food_aid}.`}>
               <h3>Requests by category</h3>
               {allIntakes.length === 0 ? <EmptyChart /> : (
                 <ResponsiveContainer height={210} width="100%">
