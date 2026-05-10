@@ -758,17 +758,15 @@ export default function PatientView() {
                 <p className="inline-error" role="alert">{socketError || audioError}</p>
               )}
 
-              {selectedInputMode === 'text' && (
-                <form className="text-input-bar" onSubmit={sendTextMessage}>
-                  <input
-                    aria-label="Type your response"
-                    placeholder="Type your response..."
-                    value={textInput}
-                    onChange={(event) => setTextInput(event.target.value)}
-                  />
-                  <button type="submit">Send</button>
-                </form>
-              )}
+              <form className="text-input-bar" onSubmit={sendTextMessage}>
+                <input
+                  aria-label="Type a response or contact detail"
+                  placeholder="Type anything here — name, email, phone, address, or a response..."
+                  value={textInput}
+                  onChange={(event) => setTextInput(event.target.value)}
+                />
+                <button type="submit">Send</button>
+              </form>
 
               <div className="patient-controls">
                 <div className="session-side-controls">
