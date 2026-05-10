@@ -10,7 +10,7 @@ export default function StaffView() {
   const [alert, setAlert] = useState(null);
   const [filters, setFilters] = useState({ mode: 'all', urgency: 'all', status: 'all', search: '' });
   const [sortBy, setSortBy] = useState('time');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
 
   const handleSocketMessage = useCallback((message) => {
     if (message.type === 'INTAKE_SNAPSHOT') {

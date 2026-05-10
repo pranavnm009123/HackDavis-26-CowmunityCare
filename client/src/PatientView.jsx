@@ -208,7 +208,7 @@ const HangUpSvg = () => (
 
 export default function PatientView() {
   const [conversation, setConversation] = useState([]);
-  const [mode, setMode] = useState('clinic');
+  const [mode, setMode] = useState('');
   const [languagePreference, setLanguagePreference] = useState('auto');
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -380,6 +380,11 @@ export default function PatientView() {
   }
 
   function startSession(langPref = languagePreference) {
+    if (!mode) {
+      pendingAutoStartRef.current = null;
+      setSessionStatus('Choose a help type first.');
+      return;
+    }
     setConversation([]);
     setSessionLoading(true);
     setSignedResponsePending(false);
@@ -581,10 +586,6 @@ export default function PatientView() {
             {connected ? 'Live' : 'Connecting'}
           </div>
         </header>
-
-        <div className="language-strip">
-          <span>{modes.find((item) => item.id === mode)?.label} mode</span>
-        </div>
 
         {!sessionStarted && (
           <section className="mode-picker">

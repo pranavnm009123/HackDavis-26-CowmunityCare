@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 const MODE_LABELS = { clinic: 'Free Clinic', shelter: 'Housing & Shelter', food_aid: 'Food Aid' };
-const URGENCY_COLORS = { CRITICAL: '#d32f2f', HIGH: '#e65100', MEDIUM: '#f57f17', LOW: '#2e7d32' };
+const URGENCY_COLORS = { CRITICAL: '#9f1d20', HIGH: '#b84f0a', MEDIUM: '#f5c242', LOW: '#1f6b3a' };
 
 let transporter = null;
 
@@ -65,7 +65,7 @@ export async function sendIntakeConfirmation({ to, name, card, mode, structuredF
   const t = await getTransporter();
   const modeLabel = MODE_LABELS[mode] || mode;
   const urgency = card?.urgency?.level || card?.urgency || 'LOW';
-  const urgencyColor = URGENCY_COLORS[urgency] || '#2e7d32';
+  const urgencyColor = URGENCY_COLORS[urgency] || URGENCY_COLORS.LOW;
   const summary = card?.english_summary || 'Your intake has been recorded.';
   const nextStep = card?.recommended_next_step || '';
   const resources = Array.isArray(card?.resource_matches) ? card.resource_matches : [];

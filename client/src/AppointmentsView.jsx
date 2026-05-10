@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSocket } from './useSocket.js';
 
 const BASE = `http://${window.location.hostname}:3001`;
-const URGENCY_COLORS = { CRITICAL: '#be2020', HIGH: '#b85412', MEDIUM: '#b38b08', LOW: '#154872' };
+const URGENCY_COLORS = { CRITICAL: '#9f1d20', HIGH: '#b84f0a', MEDIUM: '#f5c242', LOW: '#1f6b3a' };
 const SPEC_LABELS = {
   general_practice: 'General Practice',
   cardiology: 'Cardiology',
@@ -30,7 +30,7 @@ const FACILITY_TYPE_COLORS = {
 };
 
 function chipTextColor(levelOrType) {
-  return ['CRITICAL', 'HIGH', 'hospital', 'urgent_care'].includes(levelOrType) ? '#ffffff' : '#0d274e';
+  return ['CRITICAL', 'HIGH', 'LOW', 'hospital', 'urgent_care'].includes(levelOrType) ? '#ffffff' : '#0d274e';
 }
 
 const EMPTY_DOCTOR = { name: '', specialization: 'general_practice', phone: '', location: '', facility_id: '' };
@@ -379,12 +379,13 @@ export default function AppointmentsView() {
                 {slots.length > 1 && <button type="button" className="cancel-btn" aria-label={`Remove slot ${i + 1}`} onClick={() => setSlots((s) => s.filter((_, j) => j !== i))}>✕</button>}
               </div>
             ))}
-            <button type="button" className="add-slot-inline" onClick={() => setSlots((s) => [...s, { ...EMPTY_SLOT }])}>+ Add another slot</button>
-
             {doctorSuccess && <p className="user-error" role="status" style={{ color: '#154872' }}>{doctorSuccess}</p>}
-            <button className="start-session-button" disabled={savingDoctor} type="submit" style={{ marginTop: 16 }}>
-              {savingDoctor ? 'Saving…' : 'Save doctor'}
-            </button>
+            <div className="doctor-form-actions">
+              <button type="button" className="add-slot-inline" onClick={() => setSlots((s) => [...s, { ...EMPTY_SLOT }])}>+ Add another slot</button>
+              <button className="start-session-button doctor-save-button" disabled={savingDoctor} type="submit">
+                {savingDoctor ? 'Saving…' : 'Save doctor'}
+              </button>
+            </div>
           </form>
         </section>
       )}

@@ -12,13 +12,14 @@ const C = {
   blue:    '#0d274e',
   blueMid: '#154872',
   gold:    '#f5c242',
-  goldWarm:'#b38b08',
-  danger:  '#be2020',
-  warning: '#b85412',
+  goldWarm:'#f5c242',
+  danger:  '#9f1d20',
+  warning: '#b84f0a',
+  low:     '#1f6b3a',
   muted:   '#8fa4b8',
 };
 
-const URGENCY_COLORS  = { CRITICAL: C.danger, HIGH: C.warning, MEDIUM: C.goldWarm, LOW: C.blueMid };
+const URGENCY_COLORS  = { CRITICAL: C.danger, HIGH: C.warning, MEDIUM: C.goldWarm, LOW: C.low };
 const INSURANCE_COLORS = { Insured: C.blueMid, Uninsured: C.danger, Unknown: C.muted };
 
 const MODE_LABELS = {
