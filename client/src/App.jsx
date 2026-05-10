@@ -849,10 +849,12 @@ dd {
 .category-tab.cat-clinic { border-color: rgba(13, 39, 78, 0.18); }
 .category-tab.cat-shelter { border-color: rgba(245, 194, 66, 0.48); }
 .category-tab.cat-food_aid { border-color: rgba(13, 39, 78, 0.18); }
+.category-tab.cat-support_services { border-color: rgba(21, 72, 114, 0.3); }
 
 .category-tab.cat-all.active,
 .category-tab.cat-clinic.active,
-.category-tab.cat-food_aid.active { background: var(--aggie-blue); color: #fff; }
+.category-tab.cat-food_aid.active,
+.category-tab.cat-support_services.active { background: var(--aggie-blue); color: #fff; }
 .category-tab.cat-shelter.active { background: var(--aggie-gold); color: var(--aggie-blue); }
 .category-tab.active .cat-count { background: rgba(255,255,255,0.22); }
 
@@ -1101,11 +1103,48 @@ dd {
   padding: 32px;
 }
 
+.analytics-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.analytics-controls .category-tabs { margin-bottom: 0; }
+
+.date-range-tabs {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.date-tab {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--aggie-border);
+  background: rgba(255, 253, 248, 0.85);
+  color: var(--aggie-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.date-tab.active {
+  background: var(--aggie-blue);
+  color: #fff;
+  border-color: var(--aggie-blue);
+}
+
 .analytics-summary-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 28px;
+  margin-top: 20px;
 }
 
 .summary-stat {
@@ -1261,6 +1300,10 @@ dd {
   .chart-grid {
     grid-template-columns: 1fr;
   }
+
+  .analytics-controls { flex-direction: column; }
+  .date-range-tabs { width: 100%; }
+  .date-tab { flex: 1; text-align: center; }
 
   .patient-header .brand-lockup h1 {
     font-size: 3.2rem;
