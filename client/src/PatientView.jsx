@@ -225,6 +225,17 @@ export default function PatientView() {
 
   const intakeDraft = useMemo(() => extractDraft(conversation, mode), [conversation, mode]);
 
+  useEffect(() => {
+    if (!mapBanner) return;
+    const a = document.createElement('a');
+    a.href = mapBanner.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [mapBanner]);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const conversationRef = useRef(null);
