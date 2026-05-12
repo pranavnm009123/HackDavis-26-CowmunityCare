@@ -258,7 +258,7 @@ const TextSvg = () => (
   </svg>
 );
 
-export default function PatientView() {
+export default function UserView() {
   const [conversation, setConversation] = useState([]);
   const [mode, setMode] = useState('');
   const [languagePreference, setLanguagePreference] = useState('auto');

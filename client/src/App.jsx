@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AnalyticsView from './AnalyticsView.jsx';
 import AppointmentsView from './AppointmentsView.jsx';
-import PatientView from './PatientView.jsx';
+import UserView from './UserView.jsx';
 import StaffView from './StaffView.jsx';
 import LandingPage from './LandingPage.jsx';
 import AuthPage from './AuthPage.jsx';
@@ -2784,7 +2784,7 @@ function App() {
         <Route element={<AuthPage />} path="/login" />
         <Route element={<AuthPage />} path="/signup" />
         <Route element={<SettingsPage />} path="/settings" />
-        <Route element={<PatientView />} path="/user" />
+        <Route element={<UserView />} path="/user" />
         <Route element={<Navigate replace to="/user" />} path="/patient" />
         <Route element={<StaffView />} path="/staff" />
         <Route element={<AppointmentsView />} path="/staff/appointments" />
